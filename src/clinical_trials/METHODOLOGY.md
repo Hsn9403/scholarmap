@@ -152,22 +152,22 @@ CorporateLink(
 
 ## Règles Strictes (Pas d'Inférence)
 
-### ✅ Ce qui est ACCEPTÉ
+### Ce qui est ACCEPTÉ
 
 | Cas | Validation |
 |-----|-----------|
-| Chercheur est PI + Sponsor = Corporate | ✓ VALIDE |
-| Chercheur est PI + Intervention contient produit Corporate | ✓ VALIDE |
-| Chercheur est PI + Sponsor académique + Dispositif Corporate | ✓ VALIDE |
+| Chercheur est PI + Sponsor = Corporate |  VALIDE |
+| Chercheur est PI + Intervention contient produit Corporate |  VALIDE |
+| Chercheur est PI + Sponsor académique + Dispositif Corporate |  VALIDE |
 
-### ❌ Ce qui est REJETÉ
+### Ce qui est REJETÉ
 
 | Cas | Raison du rejet |
 |-----|----------------|
-| Chercheur est co-investigator + Sponsor = Corporate | ✗ Pas PI |
-| Chercheur est PI + Sponsor académique + Aucun produit corporate | ✗ Pas de lien corporate explicite |
-| Chercheur mentionné dans description mais pas dans investigateurs | ✗ Rôle non vérifié |
-| Produit inconnu (pas dans mapping) + Sponsor académique | ✗ Pas de preuve corporate |
+| Chercheur est co-investigator + Sponsor = Corporate |  Pas PI |
+| Chercheur est PI + Sponsor académique + Aucun produit corporate |  Pas de lien corporate explicite |
+| Chercheur mentionné dans description mais pas dans investigateurs |  Rôle non vérifié |
+| Produit inconnu (pas dans mapping) + Sponsor académique |  Pas de preuve corporate |
 
 ---
 
@@ -185,7 +185,7 @@ Intervention: Standard care
 
 **Résultat:**
 ```
-✓ LIEN VALIDE
+LIEN VALIDE
 Jean Dupont → Medtronic
 Via: Sponsor direct
 Confiance: 0.95
@@ -204,14 +204,14 @@ Intervention: In.Pact Drug-Coated Balloon angioplasty
 ```
 
 **Processus:**
-1. Edgar Duval identifié comme PI ✓
+1. Edgar Duval identifié comme PI 
 2. Sponsor = University Hospital (pas corporate)
 3. Intervention contient "In.Pact"
-4. Mapping: In.Pact → Medtronic ✓
+4. Mapping: In.Pact → Medtronic 
 
 **Résultat:**
 ```
-✓ LIEN VALIDE
+LIEN VALIDE
 Edgar Duval → Medtronic
 Via: Intervention (produit In.Pact)
 Confiance: 0.95
@@ -233,7 +233,7 @@ Sponsor: Medtronic
 
 **Résultat:**
 ```
-✗ REJETÉ
+REJETÉ
 Raison: Jean Dupont n'est pas PI (rôle: Co-Investigator)
 ```
 
@@ -489,9 +489,9 @@ Les liens ClinicalTrials sont distingués des autres sources :
 Les liens via ClinicalTrials sont représentés visuellement avec :
 
 **Nœuds:**
-- 🔬 **Chercheur** (scientifique)
-- 🏢 **Corporate** (entreprise)
-- 🧪 **Essai Clinique** (nœud intermédiaire optionnel)
+- **Chercheur** (scientifique)
+- **Corporate** (entreprise)
+- **Essai Clinique** (nœud intermédiaire optionnel)
 
 **Arêtes:**
 - Type: `CLINICAL_TRIAL_PI` (Principal Investigator)
@@ -553,19 +553,19 @@ Détails:
 ### Filtrage par Source
 
 L'utilisateur peut filtrer le graphe pour :
-- ✅ Afficher uniquement les liens ClinicalTrials
-- ✅ Exclure les liens ClinicalTrials
-- ✅ Combiner avec autres sources (brevets, affiliations)
+- Afficher uniquement les liens ClinicalTrials
+- Exclure les liens ClinicalTrials
+- Combiner avec autres sources (brevets, affiliations)
 
 ### Légende du Graphe
 
 ```
 Sources de données:
 ─────────────────
-🔵 ClinicalTrials  (Principal Investigator)
-🟢 Brevets         (Co-inventeur)
-🟠 Affiliations    (Affiliation institutionnelle)
-🔴 Publications    (Co-auteur avec affiliation corporate)
+ClinicalTrials  (Principal Investigator)
+Brevets         (Co-inventeur)
+Affiliations    (Affiliation institutionnelle)
+Publications    (Co-auteur avec affiliation corporate)
 ```
 
 ---

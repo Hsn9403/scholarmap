@@ -1,6 +1,6 @@
 # Guide de Déduplication
 
-## ✅ Contraintes UNIQUE ajoutées
+## Contraintes UNIQUE ajoutées
 
 Les contraintes suivantes ont été ajoutées pour **empêcher les duplicates**:
 
@@ -8,9 +8,9 @@ Les contraintes suivantes ont été ajoutées pour **empêcher les duplicates**:
 - `scientists.normalized_name` → UNIQUE
 - `corporates.normalized_name` → UNIQUE
 
-## 📖 Comment utiliser
+## Comment utiliser
 
-### ❌ **AVANT** (créait des duplicates)
+### **AVANT** (créait des duplicates)
 
 ```python
 # MAUVAIS - Ne vérifie que source_id, pas le titre
@@ -27,7 +27,7 @@ if not existing:
 
 **Problème:** Si `source_id` est None ou différent, créait un duplicate même si le titre est identique.
 
-### ✅ **APRÈS** (évite les duplicates)
+### **APRÈS** (évite les duplicates)
 
 ```python
 from src.database.deduplication import find_or_create_publication
@@ -44,17 +44,17 @@ publication, created = find_or_create_publication(
 )
 
 if created:
-    logger.info(f"✓ Created publication: {title[:50]}...")
+    logger.info(f" Created publication: {title[:50]}...")
 else:
     logger.debug(f"→ Updated existing publication: {title[:50]}...")
 ```
 
 **Avantages:**
-- ✅ Pas de duplicates (contrainte UNIQUE sur normalized_title)
-- ✅ Met à jour automatiquement avec de meilleures données
-- ✅ Plus simple et lisible
+- Pas de duplicates (contrainte UNIQUE sur normalized_title)
+- Met à jour automatiquement avec de meilleures données
+- Plus simple et lisible
 
-## 📋 Exemples pour chaque type d'entité
+## Exemples pour chaque type d'entité
 
 ### Publications
 
@@ -102,7 +102,7 @@ corporate, created = find_or_create_corporate(
 )
 ```
 
-## 🔄 Mise à jour automatique
+## Mise à jour automatique
 
 Les fonctions `find_or_create_*` **mettent à jour automatiquement** avec de meilleures données:
 
@@ -128,30 +128,30 @@ scientist, created = find_or_create_scientist(
 # scientist.scholar_id = "iQOY4mUAAAAJ" (ajouté)
 ```
 
-## 🎯 Règles de "meilleure donnée"
+## Règles de "meilleure donnée"
 
 La fonction `_update_if_better()` utilise ces règles:
 
 1. **Non-null > null**
    ```python
-   current: None → new: "value" ✅ UPDATE
-   current: "value" → new: None ❌ SKIP
+   current: None → new: "value"  UPDATE
+   current: "value" → new: None  SKIP
    ```
 
 2. **Pour les nombres: plus élevé > plus bas**
    ```python
-   h_index: 5 → 6 ✅ UPDATE
-   h_index: 6 → 5 ❌ SKIP
-   cited_by: 50 → 59 ✅ UPDATE
+   h_index: 5 → 6  UPDATE
+   h_index: 6 → 5  SKIP
+   cited_by: 50 → 59  UPDATE
    ```
 
 3. **Pour les strings: plus long > plus court**
    ```python
-   name: "A Nedelec" → "Alice Nedelec" ✅ UPDATE
-   name: "Alice Nedelec" → "A Nedelec" ❌ SKIP
+   name: "A Nedelec" → "Alice Nedelec"  UPDATE
+   name: "Alice Nedelec" → "A Nedelec"  SKIP
    ```
 
-## 🚀 Migration du code existant
+## Migration du code existant
 
 ### 1. Identifier les endroits à risque
 
@@ -202,18 +202,18 @@ result = db.execute(text('''
 
 print(f'Duplicate publications: {len(result)}')
 assert len(result) == 0, 'Found duplicates!'
-print('✅ No duplicates!')
+print(' No duplicates!')
 "
 ```
 
-## ⚠️ Important
+## Important
 
 1. **Toujours utiliser `find_or_create_*`** au lieu de créer directement des entités
 2. **Toujours appeler `db.flush()`** après `find_or_create_*` pour obtenir l'ID
 3. **Ne jamais modifier `normalized_*`** manuellement - c'est automatique
 4. **Les contraintes UNIQUE vont lever une erreur** si vous essayez de créer un duplicate manuellement
 
-## 🧪 Tests
+## Tests
 
 Pour vérifier que la déduplication fonctionne:
 
@@ -236,7 +236,7 @@ assert s2.h_index == 6  # Mis à jour
 db.rollback()  # Rollback du test
 ```
 
-## 📝 TODO
+## TODO
 
 Fichiers à migrer vers `find_or_create_*`:
 
@@ -244,4 +244,4 @@ Fichiers à migrer vers `find_or_create_*`:
 - [ ] `src/database/parse_entities.py` (parse_google_patents_results)
 - [ ] Tous les scripts d'extraction one-off
 
-Une fois migré, vous pourrez faire de nouvelles requêtes API sans créer de duplicates! 🎉
+Une fois migré, vous pourrez faire de nouvelles requêtes API sans créer de duplicates! 

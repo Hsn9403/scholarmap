@@ -28,7 +28,6 @@ sys.path.insert(0, str(webapp_dir))
 sys.path.insert(0, str(project_root))
 
 from flask import Flask, request, jsonify, session
-from flask_cors import CORS
 from flask_compress import Compress
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -47,8 +46,18 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'production') != 'development'
 
-CORS(app)
+# Pas de CORS : le frontend passe par son proxy (même origine). L'ouvrir laisserait
+# n'importe quel site lancer des analyses depuis le navigateur de ses visiteurs.
 Compress(app)
+
+# Derrière le proxy Next.js (et éventuellement nginx), l'IP du client est dans
+# X-Forwarded-For. Sans ça, le rate limit verrait une seule IP pour tout le monde.
+# Ne faire confiance qu'au nombre de proxys réellement présents, sinon l'en-tête
+# est falsifiable — et ne jamais exposer le port Flask directement.
+_proxy_hops = int(os.getenv('TRUSTED_PROXY_HOPS', '1'))
+if _proxy_hops > 0:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_proxy_hops)
 
 # Sans compte, le rate limiting par IP est la seule protection des clés API :
 # une analyse coûte des dizaines d'appels SerpAPI.
@@ -59,11 +68,28 @@ limiter = Limiter(
     default_limits=[],
 )
 ANALYSIS_RATE_LIMIT = os.getenv('ANALYSIS_RATE_LIMIT', '10 per hour')
+MAX_NAME_LENGTH = 200
 
 from services.error_tracking import capture_exception
 
-# Cache for similar-researchers endpoint
+# Cache for similar-researchers endpoint (borné : la clé vient de la requête)
 _SIMILAR_CACHE: dict = {}
+_SIMILAR_CACHE_MAX = 500
+
+# Les graphes embarquent des chaînes externes (titres, noms d'entreprises, sponsors)
+# insérées en HTML. Le sandbox CSP les fait tourner dans une origine opaque, même
+# ouverts hors iframe : un titre piégé ne peut rien atteindre du site.
+_GRAPH_HEADERS = {
+    'Content-Security-Policy': 'sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals',
+    'X-Content-Type-Options': 'nosniff',
+}
+
+
+@app.after_request
+def _security_headers(response):
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    return response
 
 # ── i18n ──────────────────────────────────────────────────────────────────────
 _TRANSLATIONS: dict = {}
@@ -350,6 +376,7 @@ def _launch_analysis(researcher_name: str, scholar_id=None, openalex_id=None, fo
 
 
 @app.route('/api/analyze/resolve', methods=['POST'])
+@limiter.limit(lambda: os.getenv('RESOLVE_RATE_LIMIT', '60 per minute'))
 def api_analyze_resolve():
     """
     Résout ce qu'il faut faire d'un nom de chercheur, sans rien lancer.
@@ -366,6 +393,8 @@ def api_analyze_resolve():
 
     if not researcher_name:
         return jsonify({'action': 'error', 'error': 'Missing researcher_name'}), 400
+    if len(researcher_name) > MAX_NAME_LENGTH:
+        return jsonify({'action': 'error', 'error': 'Name too long'}), 400
 
     try:
         # ── Rapport déjà en base : proposer la réutilisation ──
@@ -398,7 +427,7 @@ def api_analyze_resolve():
     except Exception as e:
         logger.error(f"Failed to resolve analysis: {e}", exc_info=True)
         capture_exception(e, route='/api/analyze/resolve', researcher=researcher_name)
-        return jsonify({'action': 'error', 'error': str(e)}), 500
+        return jsonify({'action': 'error', 'error': 'Internal error'}), 500
 
 
 @app.route('/api/analyze/start', methods=['POST'])
@@ -418,6 +447,8 @@ def api_analyze_start():
 
     if not researcher_name:
         return jsonify({'error': 'Missing researcher_name'}), 400
+    if len(researcher_name) > MAX_NAME_LENGTH:
+        return jsonify({'error': 'Name too long'}), 400
 
     try:
         task_id = _launch_analysis(researcher_name, scholar_id, openalex_id, force_new)
@@ -425,7 +456,7 @@ def api_analyze_start():
     except Exception as e:
         logger.error(f"Failed to start analysis: {e}", exc_info=True)
         capture_exception(e, route='/api/analyze/start', researcher=researcher_name)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal error'}), 500
 
 
 @app.route('/api/analyze/task/<task_id>')
@@ -537,7 +568,7 @@ def api_report(researcher_name):
     except Exception as e:
         logger.error(f"Error building report data: {e}", exc_info=True)
         capture_exception(e, route='/api/report', researcher=researcher_name)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal error'}), 500
 
 
 @app.route('/api/coauthor/<path:coauthor_name>')
@@ -558,7 +589,7 @@ def api_coauthor(coauthor_name):
     except Exception as e:
         logger.error(f"Error getting coauthor profile: {e}", exc_info=True)
         capture_exception(e, route='/api/coauthor', coauthor=coauthor_name)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal error'}), 500
 
 
 @app.route('/graphs/db/<normalized_name>')
@@ -578,7 +609,7 @@ def serve_graph_from_db(normalized_name):
         db.close()
 
     html = _patch_graph_html(html)
-    return Response(html, mimetype='text/html')
+    return Response(html, mimetype='text/html', headers=_GRAPH_HEADERS)
 
 
 @app.route('/graphs/<filename>')
@@ -600,7 +631,7 @@ def serve_graph(filename):
     with open(filepath, 'r', encoding='utf-8') as f:
         html = f.read()
 
-    return Response(_patch_graph_html(html), mimetype='text/html')
+    return Response(_patch_graph_html(html), mimetype='text/html', headers=_GRAPH_HEADERS)
 
 
 # =============================================
@@ -992,6 +1023,8 @@ def _run_pipeline_thread(task_id: str, researcher_name: str, scholar_id: str = N
 @app.route('/api/cancel/<task_id>', methods=['POST'])
 def api_cancel_task(task_id):
     """Cancel a running pipeline task (called by loading page on navigate away)."""
+    if _get_task_status(task_id) is None:
+        return jsonify({'ok': False}), 404
     _cancel_task(task_id)
     return {'ok': True}
 
@@ -1085,7 +1118,7 @@ def api_status(task_id):
 
     except Exception as e:
         logger.error(f"Error getting task status: {e}", exc_info=True)
-        return jsonify({'status': 'error', 'progress': 0, 'message': f'Error: {str(e)}'}), 500
+        return jsonify({'status': 'error', 'progress': 0, 'message': 'Internal error'}), 500
 
 
 @app.route('/api/excel_ready/<path:researcher_name>')
@@ -1101,11 +1134,14 @@ def api_excel_ready(researcher_name):
 
 
 @app.route('/api/similar-researchers')
+@limiter.limit(lambda: os.getenv('SIMILAR_RATE_LIMIT', '30 per hour'))
 def api_similar_researchers():
     """Retourne des chercheurs dans le même domaine — appelé en async depuis la loading page."""
     name = (request.args.get('name') or '').strip()
     if not name:
         return jsonify({'error': 'name required'}), 400
+    if len(name) > 200:
+        return jsonify({'error': 'name too long'}), 400
 
     # Cache simple en mémoire par nom
     cache_key = f"similar__{name.lower()}"
@@ -1146,6 +1182,8 @@ def api_similar_researchers():
                 content = content[4:]
             content = content.strip()
         result = _json.loads(content)
+        if len(_SIMILAR_CACHE) >= _SIMILAR_CACHE_MAX:
+            _SIMILAR_CACHE.pop(next(iter(_SIMILAR_CACHE)))
         _SIMILAR_CACHE[cache_key] = result
         return jsonify(result)
     except Exception as e:
@@ -1185,8 +1223,9 @@ if __name__ == '__main__':
     logger.info(f"Debug mode: {app.config['DEBUG']}")
     logger.info(f"Port: {port}")
 
+    # 127.0.0.1 par défaut : en debug, Werkzeug expose une console Python interactive
     app.run(
-        host='0.0.0.0',
+        host=os.getenv('FLASK_HOST', '127.0.0.1'),
         port=port,
         debug=app.config['DEBUG']
     )

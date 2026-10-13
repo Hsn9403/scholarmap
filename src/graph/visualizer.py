@@ -8,7 +8,9 @@ This module provides functions to:
 """
 from __future__ import annotations
 
+import json as _json
 import math
+from html import escape as _esc
 from typing import Any, Dict, List, Optional, Set
 
 import networkx as nx
@@ -945,6 +947,19 @@ def _sanitize_connections(connections: list) -> list:
     return [_safe(c) for c in (connections or [])]
 
 
+def _safe_url(url: Any) -> str:
+    """Only http(s) links reach an href: the URLs come from external APIs."""
+    url = str(url or "").strip()
+    return _esc(url) if url.lower().startswith(("http://", "https://")) else ""
+
+
+def _js_literal(value: Any) -> str:
+    """JSON safe to inline in a <script>: '</script>' in a title must not end it."""
+    return (_json.dumps(value, ensure_ascii=False, default=str)
+            .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+            .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+
+
 def _build_js_graph_data(graph: Dict[str, Any]) -> str:
     """
     Build JavaScript-compatible graph data for filters panel.
@@ -1053,10 +1068,10 @@ def _build_js_graph_data(graph: Dict[str, Any]) -> str:
     }
 
     try:
-        return json.dumps(data, ensure_ascii=False)
+        return _js_literal(data)
     except (TypeError, ValueError) as e:
         logger.warning(f"Graph data serialization failed ({e}), retrying with string fallback")
-        return json.dumps(data, ensure_ascii=False, default=str)
+        return _js_literal(data)
 
 
 def render_graph_html(
@@ -1115,14 +1130,16 @@ def render_graph_html(
         links = n.get("links") or {}
         scholar_url = links.get("scholar_profile", "") or links.get("scholar_url", "")
 
+        # Libellés, titres, noms viennent d'APIs externes : tout est échappé ici
         def _badge(text, cls):
-            return f'<span class="tt-badge tt-badge-{cls}">{text}</span>'
+            return f'<span class="tt-badge tt-badge-{_esc(str(cls))}">{_esc(str(text))}</span>'
 
         def _row(key, val):
-            return f'<div class="tt-row"><span class="tt-key">{key}</span><span class="tt-val">{val}</span></div>'
+            return f'<div class="tt-row"><span class="tt-key">{_esc(str(key))}</span><span class="tt-val">{_esc(str(val))}</span></div>'
 
         def _cta(text, url):
-            return f'<a class="tt-cta" href="{url}" target="_blank">{text} &rarr;</a>'
+            href = _safe_url(url)
+            return f'<a class="tt-cta" href="{href}" target="_blank">{_esc(str(text))} &rarr;</a>' if href else ""
 
         if ntype == "person":
             is_seed = (nid == seed_id)
@@ -1137,12 +1154,12 @@ def render_graph_html(
             if collab_count is not None and collab_count > 0 and not is_seed:
                 collab_str = f"{collab_count} publication{'s' if collab_count > 1 else ''} en commun"
                 if last_year:
-                    collab_str += f" &middot; dernière en {last_year}"
+                    collab_str += f" · dernière en {last_year}"
                 rows.append(_row("Collaborations", collab_str))
 
             cta = _cta("Voir le profil OpenAlex", scholar_url) if scholar_url else ""
 
-            tooltip_html = f'<div class="tt-header"><span class="tt-name">{label}</span>{badge}</div>'
+            tooltip_html = f'<div class="tt-header"><span class="tt-name">{_esc(str(label))}</span>{badge}</div>'
             if rows:
                 tooltip_html += f'<div class="tt-body">{"".join(rows)}</div>'
             if cta:
@@ -1176,7 +1193,7 @@ def render_graph_html(
 
             cta = _cta("Lire l'article", pub_url) if pub_url else ""
 
-            tooltip_html = f'<div class="tt-header"><span class="tt-name tt-name-sm">{display_title}</span>{_badge("Publication", "publication")}</div>'
+            tooltip_html = f'<div class="tt-header"><span class="tt-name tt-name-sm">{_esc(str(display_title))}</span>{_badge("Publication", "publication")}</div>'
             if rows:
                 tooltip_html += f'<div class="tt-body">{"".join(rows)}</div>'
             if cta:
@@ -1206,7 +1223,7 @@ def render_graph_html(
 
             cta = _cta("Voir sur Google Patents", patents_link) if patents_link else ""
 
-            tooltip_html = f'<div class="tt-header"><span class="tt-name tt-name-sm">{display_title}</span>{_badge("Brevet", "patent")}</div>'
+            tooltip_html = f'<div class="tt-header"><span class="tt-name tt-name-sm">{_esc(str(display_title))}</span>{_badge("Brevet", "patent")}</div>'
             if rows:
                 tooltip_html += f'<div class="tt-body">{"".join(rows)}</div>'
             if cta:
@@ -1232,14 +1249,14 @@ def render_graph_html(
                     if scientist_name:
                         rows_html += (
                             f'<div class="tt-conn-row">'
-                            f'<span class="tt-conn-name">{scientist_name}</span>'
-                            f'<span class="tt-conn-type">{aff_type}</span>'
+                            f'<span class="tt-conn-name">{_esc(str(scientist_name))}</span>'
+                            f'<span class="tt-conn-type">{_esc(str(aff_type))}</span>'
                             f'</div>'
                         )
                 if len(connections) > 5:
                     rows_html += f'<div class="tt-muted">+{len(connections) - 5} autre(s) connexion(s)</div>'
 
-            tooltip_html = f'<div class="tt-header"><span class="tt-name">{label}</span>{_badge("Corporate", "corporate")}</div>'
+            tooltip_html = f'<div class="tt-header"><span class="tt-name">{_esc(str(label))}</span>{_badge("Corporate", "corporate")}</div>'
             if rows_html:
                 conn_label = f'Connexions ({len(connections)})'
                 tooltip_html += f'<div class="tt-body"><div class="tt-conn-label">{conn_label}</div>{rows_html}</div>'
@@ -1249,14 +1266,14 @@ def render_graph_html(
             openalex_url = links.get("openalex_url", "") or links.get("scholar_profile", "")
             is_current = attrs.get("is_current", False)
             badge_label = "Institution actuelle" if is_current else "Institution"
-            tooltip_html = f'<div class="tt-header"><span class="tt-name">{label}</span>{_badge(badge_label, "institution")}</div>'
+            tooltip_html = f'<div class="tt-header"><span class="tt-name">{_esc(str(label))}</span>{_badge(badge_label, "institution")}</div>'
             tooltip_html += '<div class="tt-body"><div class="tt-muted" style="font-size:11px;color:#6B7280;margin-bottom:2px;">Source\u00a0: OpenAlex</div></div>'
             if openalex_url:
                 tooltip_html += _cta("openalex_url", openalex_url)
 
         else:
             badge_label = ntype.capitalize()
-            tooltip_html = f'<div class="tt-header"><span class="tt-name">{label}</span>{_badge(badge_label, ntype)}</div>'
+            tooltip_html = f'<div class="tt-header"><span class="tt-name">{_esc(str(label))}</span>{_badge(badge_label, ntype)}</div>'
             for lk, url in links.items():
                 if url:
                     tooltip_html += _cta(lk, url)
@@ -1286,8 +1303,8 @@ def render_graph_html(
         ev = e.get("evidence") or []
         if ev:
             items = [
-                f'<a href="{x.get("url")}" target="_blank">{x.get("label", "source")}</a>'
-                for x in ev[:3] if x.get("url")
+                f'<a href="{_safe_url(x.get("url"))}" target="_blank">{_esc(str(x.get("label", "source")))}</a>'
+                for x in ev[:3] if _safe_url(x.get("url"))
             ]
             if items:
                 ev_html = "<br/>" + " | ".join(items)
@@ -1439,8 +1456,19 @@ def render_graph_html(
 <script type="text/javascript">
     // Graph data for filters
     const graphData = {js_graph_data};
-    const seedNodeId = "{graph['meta']['seed_person_id']}";
+    const seedNodeId = {_js_literal(graph['meta']['seed_person_id'])};
     let seedLabel = "";  // Will be set after network init
+
+    // Les chaînes du graphe viennent d'APIs externes : échapper avant innerHTML
+    function escHtml(s) {{
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {{
+            return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c];
+        }});
+    }}
+    function safeHref(u) {{
+        u = String(u || '').trim();
+        return /^https?:\\/\\//i.test(u) ? escHtml(u) : '';
+    }}
 
     // State management
     let highlightedCorporates = new Set();  // supports multi-corporate highlight
@@ -2094,17 +2122,17 @@ def render_graph_html(
 
         if (type === 'patent_inventor') {{
             const links = ev.map(function(e) {{
-                const t = e.title || e.patent_id || '';
-                const u = patentUrl(e);
-                return u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '" title="' + t.replace(/"/g,'&quot;') + '">' + t + ' \u2197</a>'
-                         : '<span style="' + aStyle + 'color:#64748B;" title="' + t.replace(/"/g,'&quot;') + '">' + t + '</span>';
+                const t = escHtml(e.title || e.patent_id || '');
+                const u = safeHref(patentUrl(e));
+                return u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '" title="' + t + '">' + t + ' \u2197</a>'
+                         : '<span style="' + aStyle + 'color:#64748B;" title="' + t + '">' + t + '</span>';
             }}).join('');
             return 'Co-inventeur de\u00a0' + ev.length + '\u00a0brevet(s) pour ce corporate' + links;
 
         }} else if (type === 'patent_assignee') {{
             const e = ev[0] || {{}};
-            const t = e.title ? '"' + e.title.substring(0,60) + (e.title.length>60?'\u2026':'"') : '';
-            const u = patentUrl(e);
+            const t = e.title ? escHtml('"' + e.title.substring(0,60) + (e.title.length>60?'\u2026':'"')) : '';
+            const u = safeHref(patentUrl(e));
             const link = u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '">Voir le brevet \u2197</a>' : '';
             return 'Brevet assign\u00e9 \u00e0 ce corporate'
                  + (t ? '<span style="' + aStyle + 'color:#64748B;">' + t + '</span>' : '')
@@ -2112,7 +2140,7 @@ def render_graph_html(
 
         }} else if (type === 'patent_citation') {{
             const e = ev[0] || {{}};
-            const u = patentUrl(e);
+            const u = safeHref(patentUrl(e));
             const link = u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '">Voir le brevet \u2197</a>' : '';
             return 'Ce corporate a cit\u00e9 un de ses brevets' + link;
 
@@ -2124,9 +2152,10 @@ def render_graph_html(
                       : 'sponsoris\u00e9(s) par ce corporate';
             const links = ev.slice(0,3).map(function(e) {{
                 const t = (e.study_title || '').substring(0,55) + (e.study_title && e.study_title.length>55 ? '\u2026' : '');
-                const u = e.url || ('https://clinicaltrials.gov/ct2/show/' + (e.nct_id || ''));
-                const label = e.nct_id ? e.nct_id + (t ? '\u00a0- ' + t : '') : t;
-                return '<a href="' + u + '" target="_blank" style="' + aStyle + '">' + label + ' \u2197</a>';
+                const u = safeHref(e.url || ('https://clinicaltrials.gov/ct2/show/' + encodeURIComponent(e.nct_id || '')));
+                const label = escHtml(e.nct_id ? e.nct_id + (t ? '\u00a0- ' + t : '') : t);
+                return u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '">' + label + ' \u2197</a>'
+                         : '<span style="' + aStyle + 'color:#64748B;">' + label + '</span>';
             }}).join('');
             return 'Investigateur sur\u00a0' + ev.length + '\u00a0essai(s) clinique(s)\u00a0' + rel + links;
 
@@ -2134,23 +2163,23 @@ def render_graph_html(
             const total = ev.reduce(function(s,e){{ return s+(parseFloat(e.amount)||0); }}, 0);
             const totalStr = total > 0 ? '\u00a0- total\u00a0: ' + total.toLocaleString('fr-FR',{{style:'currency',currency:'EUR',maximumFractionDigits:0}}) : '';
             const reasonLinks = ev.filter(function(e){{ return e.reason; }}).slice(0,3).map(function(e) {{
-                const u = e.declaration_id ? 'https://www.transparence.sante.gouv.fr/pages/detailsdeclaration/?q.id=' + e.declaration_id : '';
-                return u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '">' + e.reason + ' \u2197</a>'
-                         : '<span style="' + aStyle + 'color:#64748B;">' + e.reason + '</span>';
+                const u = e.declaration_id ? safeHref('https://www.transparence.sante.gouv.fr/pages/detailsdeclaration/?q.id=' + encodeURIComponent(e.declaration_id)) : '';
+                return u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '">' + escHtml(e.reason) + ' \u2197</a>'
+                         : '<span style="' + aStyle + 'color:#64748B;">' + escHtml(e.reason) + '</span>';
             }}).join('');
             return ev.length + '\u00a0paiement(s) d\u00e9clar\u00e9(s) - Transparence Sant\u00e9' + totalStr + reasonLinks;
 
         }} else if (type === 'open_payments') {{
             const total = ev.reduce(function(s,e){{ return s+(parseFloat(e.amount_usd)||0); }}, 0);
             const totalStr = total > 0 ? '\u00a0- total\u00a0: ' + total.toLocaleString('en-US',{{style:'currency',currency:'USD',maximumFractionDigits:0}}) : '';
-            const natures = [...new Set(ev.map(function(e){{ return e.nature_of_payment; }}).filter(Boolean))].slice(0,3).join(', ');
+            const natures = [...new Set(ev.map(function(e){{ return e.nature_of_payment; }}).filter(Boolean))].slice(0,3).map(escHtml).join(', ');
             return ev.length + '\u00a0payment(s) - CMS Open Payments' + totalStr
                  + (natures ? '<span style="' + aStyle + 'color:#64748B;">' + natures + '</span>' : '');
 
         }} else if (type === 'employment') {{
             return 'Affili\u00e9(e) \u00e0 ce corporate';
         }}
-        return type.replace(/_/g, ' ');
+        return escHtml(type.replace(/_/g, ' '));
     }}
 
     // Panneau de connexions : affiche POURQUOI un corporate est lié
@@ -2231,7 +2260,7 @@ def render_graph_html(
 
             if (idx > 0) html += '<hr style="' + S.sep + '">';
 
-            html += '<div style="' + S.corpName + '">' + name + '</div>';
+            html += '<div style="' + S.corpName + '">' + escHtml(name) + '</div>';
 
             if (connections.length > 0) {{
                 // Grouper les connexions par personne
@@ -2256,17 +2285,17 @@ def render_graph_html(
 
                     if (isDirect) {{
                         html += '<div style="' + S.labelDirect + '">Lien direct\u00a0:</div>'
-                              + '<div style="' + S.arrowDirect + '">\u2192\u00a0' + person + '</div>';
+                              + '<div style="' + S.arrowDirect + '">\u2192\u00a0' + escHtml(person) + '</div>';
                     }} else if (isIndirect) {{
                         html += '<div style="' + S.label + '">Lien identifi\u00e9\u00a0:</div>'
-                              + '<div style="' + S.arrow + '">\u2192\u00a0' + person + '</div>';
+                              + '<div style="' + S.arrow + '">\u2192\u00a0' + escHtml(person) + '</div>';
                     }}
 
                     html += '<div style="' + (isDirect ? S.labelDirect : S.label) + '">Pourquoi\u00a0?</div>';
 
                     if (isIndirect) {{
                         html += '<div style="' + S.arrow + '">\u2192\u00a0'
-                              + rel.charAt(0).toUpperCase() + rel.slice(1) + ' avec\u00a0' + seedLabel
+                              + rel.charAt(0).toUpperCase() + rel.slice(1) + ' avec\u00a0' + escHtml(seedLabel)
                               + '</div>';
                     }}
 
@@ -2281,7 +2310,7 @@ def render_graph_html(
                 html += '<div style="' + S.label + '">Chemin identifi\u00e9\u00a0:</div>';
                 paths.slice(0,2).forEach(function(path) {{
                     const labels = path.map(function(id){{ const nd=nodes.get(id); return nd?nd.label:id; }});
-                    html += '<div style="' + S.arrow + '">\u2192\u00a0' + labels.join(' \u2192 ') + '</div>';
+                    html += '<div style="' + S.arrow + '">\u2192\u00a0' + labels.map(escHtml).join(' \u2192 ') + '</div>';
                 }});
             }}
         }});

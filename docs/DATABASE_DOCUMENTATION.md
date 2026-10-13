@@ -1,4 +1,4 @@
-# 📚 Database Documentation - Scholarmap
+# Database Documentation - Scholarmap
 
 **Version:** 1.0
 **Date:** 2026-02-03
@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Connection](#connection)
@@ -18,7 +18,7 @@
 
 ---
 
-## 🔍 Overview
+## Overview
 
 The Scholarmap database stores structured scientific data including:
 - **Scientists** (researchers with Google Scholar profiles)
@@ -36,7 +36,7 @@ The Scholarmap database stores structured scientific data including:
 
 ---
 
-## 🔌 Connection
+## Connection
 
 ### Connection String
 ```
@@ -73,7 +73,7 @@ api.close()
 
 ---
 
-## 📊 Database Schema
+## Database Schema
 
 ### Entity-Relationship Overview
 
@@ -99,7 +99,7 @@ api.close()
 
 ---
 
-## 📋 Tables Reference
+## Tables Reference
 
 ### 1. **scientists**
 
@@ -283,7 +283,7 @@ Links scientists to their affiliated institutions.
 
 ---
 
-## 🔗 Relationships
+## Relationships
 
 ### One-to-Many
 - `scientists` → `api_calls` (one scientist, many API calls)
@@ -296,7 +296,7 @@ Links scientists to their affiliated institutions.
 
 ---
 
-## 🐍 Using the Python API
+## Using the Python API
 
 ### Quick Start
 
@@ -350,7 +350,7 @@ with DatabaseAPI() as api:
 
 ---
 
-## 📝 SQL Query Examples
+## SQL Query Examples
 
 ### Find a scientist
 ```sql
@@ -442,7 +442,7 @@ LIMIT 10;
 
 ---
 
-## 🔧 Maintenance
+## Maintenance
 
 ### Backup Database
 ```bash
@@ -466,7 +466,7 @@ VACUUM ANALYZE;
 
 ---
 
-## 📞 Support
+## Support
 
 For questions or issues:
 - Check this documentation first

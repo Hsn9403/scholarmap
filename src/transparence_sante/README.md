@@ -237,7 +237,7 @@ Payment threshold: ≥10,000 €
 ================================================================================
 
 [1] Scanning: Jean-Paul Martin
-  ✓ Found 3 company(ies): MEDTRONIC FRANCE, COOK FRANCE, BOSTON SCIENTIFIC
+   Found 3 company(ies): MEDTRONIC FRANCE, COOK FRANCE, BOSTON SCIENTIFIC
     Total amount: 142,500.00 €
 
 [2] Scanning: Marie Dupont

@@ -16,7 +16,7 @@ class Config:
 
     # --- Flask Configuration ---
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
-    DEBUG = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 
     # --- Database Configuration (même DB que le projet principal) ---
     DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://localhost/sci_diligence')
@@ -49,7 +49,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     """Configuration pour le développement"""
-    DEBUG = True
+    DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     USE_CELERY = False  # Pas de Celery en dev par défaut
 
 

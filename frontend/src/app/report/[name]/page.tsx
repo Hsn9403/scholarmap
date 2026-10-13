@@ -46,7 +46,8 @@ function ReportContent() {
     function onMessage(e: MessageEvent) {
       const msg = e.data;
       if (!msg || typeof msg !== "object") return;
-      if (msg.type === "openUrl" && typeof msg.url === "string") {
+      // The graph is sandboxed and renders external strings: only follow web links
+      if (msg.type === "openUrl" && typeof msg.url === "string" && /^https?:\/\//i.test(msg.url)) {
         window.open(msg.url, "_blank", "noopener,noreferrer");
       }
     }
@@ -168,6 +169,7 @@ function Report({ data }: { data: ReportData }) {
         {graph_url ? (
           <iframe
             src={graph_url}
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"
             className="w-full h-[1000px]"
             style={{
               display: "block",

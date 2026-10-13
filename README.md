@@ -77,9 +77,26 @@ flowchart LR
 - **Reports:** openpyxl
 - **i18n:** French and English, one source of truth in `webapp/translations/`
 
+## Security
+
 There are no user accounts. Anyone who can reach the instance can run an analysis, so the
-only protection of your API quotas is the per-IP rate limit on `/api/analyze/start`
-(`ANALYSIS_RATE_LIMIT`, 10 per hour by default).
+protection of your API quotas is the per-IP rate limit on `/api/analyze/start`
+(`ANALYSIS_RATE_LIMIT`, 10 per hour by default) and on the other endpoints that call paid
+or rate-limited APIs.
+
+- **Expose only the frontend.** Flask must sit behind the Next.js proxy (and optionally
+  nginx); set `TRUSTED_PROXY_HOPS` to the number of proxies so the rate limit sees the real
+  client IP. If the Flask port is reachable directly, `X-Forwarded-For` can be forged.
+- **Graphs are sandboxed.** They embed strings from external APIs (titles, company names,
+  trial sponsors). Those strings are HTML-escaped, and `/graphs/*` is also served with a
+  `Content-Security-Policy: sandbox` header, so a graph runs in an opaque origin with no
+  access to the site even if something slipped through.
+- **No CORS.** The API only answers same-origin requests, so another site cannot make its
+  visitors' browsers launch analyses on your quota.
+- **Debug is off by default** and the development server binds to `127.0.0.1`.
+
+Found a vulnerability? Please open a private security advisory on GitHub rather than a
+public issue.
 
 ---
 

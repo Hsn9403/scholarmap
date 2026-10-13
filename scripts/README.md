@@ -1,15 +1,15 @@
-# 📂 Scripts d'Exécution - Scholarmap
+# Scripts d'Exécution - Scholarmap
 
 Ce dossier contient **tous les scripts d'exécution** du projet, organisés par fonction.
 
 ---
 
-## 🎯 Script Principal (RECOMMANDÉ)
+## Script Principal (RECOMMANDÉ)
 
 ### `build_ultra_complete_graph.py`
 **Le script tout-en-un qui fait TOUT automatiquement**
 
-✅ **Ce qu'il fait :**
+**Ce qu'il fait :**
 1. Scholar : Publications + Co-auteurs
 2. Patents : Brevets + Assignees
 3. Clinical Trials : Co-auteurs → Corporates (sponsors)
@@ -36,7 +36,7 @@ python3 scripts/build_ultra_complete_graph.py "Andre Imbert" \
 
 ---
 
-## 📊 Scripts de Génération de Graphe
+## Scripts de Génération de Graphe
 
 ### `build_complete_graph.py`
 Graphe complet avec Scholar + Patents + Industry (depuis DB uniquement)
@@ -47,11 +47,11 @@ python3 scripts/build_complete_graph.py "Researcher Name"
 python3 scripts/build_complete_graph.py "Name" --max-publications 100
 ```
 
-⚠️ **Note :** Ne cherche PAS Clinical Trials ni Transparence Santé, récupère uniquement les corporates déjà en DB.
+**Note :** Ne cherche PAS Clinical Trials ni Transparence Santé, récupère uniquement les corporates déjà en DB.
 
 ---
 
-## 🔍 Scripts de Découverte de Corporates
+## Scripts de Découverte de Corporates
 
 ### `discover_corporates_from_clinical_trials.py`
 Cherche les corporates via Clinical Trials (co-auteurs comme PIs)
@@ -106,7 +106,7 @@ python3 scripts/example_complete_corporate_discovery.py "Name" --add-to-db
 
 ---
 
-## 🛠️ Scripts Utilitaires
+## Scripts Utilitaires
 
 ### `add_edgar_duval_standalone.py`
 Script standalone pour ajouter Edgar Duval et ses déclarations Transparence Santé en DB
@@ -118,12 +118,12 @@ python3 scripts/add_edgar_duval_standalone.py
 
 ---
 
-## 📁 Architecture Modulaire
+## Architecture Modulaire
 
 ```
 scripts/
 ├── README.md                                    # Ce fichier
-├── build_ultra_complete_graph.py               # ⭐ SCRIPT PRINCIPAL
+├── build_ultra_complete_graph.py               #  SCRIPT PRINCIPAL
 ├── build_complete_graph.py                     # Graphe (Scholar + Patents + DB)
 ├── discover_corporates_from_clinical_trials.py # Clinical Trials
 ├── discover_corporates_from_transparence_sante.py # Transparence Santé
@@ -139,7 +139,7 @@ scripts/
 
 ---
 
-## 🚀 Workflow Recommandé
+## Workflow Recommandé
 
 ### Pour une analyse complète (RECOMMANDÉ)
 
@@ -160,7 +160,7 @@ python3 scripts/build_complete_graph.py "Name"
 
 ---
 
-## 💡 Conseils
+## Conseils
 
 - **Utilisez `build_ultra_complete_graph.py` pour tout avoir** d'un coup
 - Pour les chercheurs médicaux : laissez Transparence Santé activé
@@ -169,7 +169,7 @@ python3 scripts/build_complete_graph.py "Name"
 
 ---
 
-## 📝 Paramètres Importants
+## Paramètres Importants
 
 | Paramètre | Défaut | Description |
 |-----------|--------|-------------|
@@ -183,4 +183,4 @@ python3 scripts/build_complete_graph.py "Name"
 
 ---
 
-**Tout est maintenant centralisé dans `scripts/` !** 🎉
+**Tout est maintenant centralisé dans `scripts/` !** 

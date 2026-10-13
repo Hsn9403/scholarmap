@@ -1,16 +1,16 @@
-# 🗄️ Database Module
+# Database Module
 
 Clean Python API for accessing the Scholarmap PostgreSQL database.
 
 ---
 
-## 📋 Quick Links
+## Quick Links
 
 - [Database Documentation](../../docs/DATABASE_DOCUMENTATION.md) - Complete reference
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```python
 from src.database.api import DatabaseAPI
@@ -26,7 +26,7 @@ with DatabaseAPI() as api:
 
 ---
 
-## 📁 Module Structure
+## Module Structure
 
 ```
 src/database/
@@ -45,7 +45,7 @@ src/database/
 
 ---
 
-## 🎯 Key Features
+## Key Features
 
 ### 1. **Clean API** - No SQL Required
 ```python
@@ -74,8 +74,8 @@ data = api.export_scientist_to_dict(scientist_id)
 
 # Returns:
 # {
-#   "scientist": {...},
-#   "publications": [...]
+# "scientist": {...},
+# "publications": [...]
 # }
 ```
 
@@ -88,7 +88,7 @@ with DatabaseAPI() as api:
 
 ---
 
-## 📚 Available Methods
+## Available Methods
 
 ### Scientists
 - `get_scientist_by_id(id)` - Get by database ID
@@ -118,7 +118,7 @@ with DatabaseAPI() as api:
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ```bash
 # Run all tests
@@ -132,13 +132,13 @@ pytest tests/test_database_api.py --cov=src.database.api
 ```
 
 **Test Results:**
-- ✅ 21 tests pass
-- ✅ 100% API coverage
-- ✅ < 1 second execution
+- 21 tests pass
+- 100% API coverage
+- < 1 second execution
 
 ---
 
-## 🔌 Database Connection
+## Database Connection
 
 ### Environment Variable
 ```bash
@@ -152,7 +152,7 @@ DATABASE_URL=postgresql://sci_diligence:sci_diligence_local@localhost:5432/sci_d
 
 ---
 
-## 📊 Database Schema
+## Database Schema
 
 ### Core Tables
 - `scientists` (122) - Researchers with Google Scholar profiles
@@ -172,7 +172,7 @@ DATABASE_URL=postgresql://sci_diligence:sci_diligence_local@localhost:5432/sci_d
 
 ---
 
-## 🚀 Common Use Cases
+## Common Use Cases
 
 ### 1. Find a Scientist
 ```python
@@ -215,7 +215,7 @@ with DatabaseAPI() as api:
 
 ---
 
-## 🛠️ Maintenance
+## Maintenance
 
 ### Initialize Database
 ```bash
@@ -239,7 +239,7 @@ python src/database/run_migration.py
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 - **[Complete Database Documentation](../../docs/DATABASE_DOCUMENTATION.md)**
   - Full schema reference
@@ -258,7 +258,7 @@ python src/database/run_migration.py
 
 ---
 
-## 🤝 For the Tech Team
+## For the Tech Team
 
 ### Why Use This API?
 
@@ -302,14 +302,14 @@ def get_researcher_report(name: str):
 
 ---
 
-## 📞 Support
+## Support
 
 - **Documentation:** See `docs/` folder
 - **Tests:** Run `pytest tests/test_database_api.py -v`
 
 ---
 
-## ✅ Checklist for Delivery
+## Checklist for Delivery
 
 - [x] Database initialized and populated (122 scientists, 160 publications)
 - [x] Python API module created (`src/database/api.py`)
@@ -319,4 +319,4 @@ def get_researcher_report(name: str):
 - [x] SQL query reference
 - [x] Connection tested and working
 
-**Status:** ✅ Ready for production use
+**Status:** Ready for production use
