@@ -112,3 +112,9 @@ for honouring removal requests.
 
 Docstring examples and test fixtures use invented names. If a name in here looks like a real
 person, it is a fixture rather than a claim about anyone.
+
+---
+
+## Licence
+
+[MIT](LICENSE).
