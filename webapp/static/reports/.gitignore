@@ -1,0 +1,5 @@
+# Ignore all Excel reports
+*.xlsx
+
+# Keep the directory
+!.gitignore

@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Environment variables
+.env
+.env.local
+.env.preprod
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Output files
+*.xlsx
+*.json
+!webapp/translations/*.json
+*.csv
+output.csv
+
+# HTML output files (but allow webapp templates)
+*.html
+!webapp/templates/*.html
+
+# Backup files
+*.bak
+*~
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+to_delete.json
+
+# Database (SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# Large data files
+cassettes/
+output/
+*.html
+!webapp/templates/*.html
+graphs/
+
+# ---------------------------------------------------------------------------
+# Dépôt public : ces chemins portent des données nominatives réelles.
+# Ils ont été retirés une fois ; ces règles empêchent qu'ils reviennent.
+# ---------------------------------------------------------------------------
+graphify-out/
+graphify-in/
+.playwright-mcp/
+data/network/
+output/
+
+# Caches de réponses API (chercheurs analysés) — plusieurs centaines de Mo
+.cache/
+cassettes/
+
+# Journaux d'exécution : traces complètes d'analyses nominatives
+*.txt
+!requirements*.txt
+
+# Fichiers de configuration à conserver malgré la règle *.json ci-dessus.
+# Sans ces exceptions, un clone frais ne peut pas construire le frontend.
+!frontend/package.json
+!frontend/tsconfig.json
+!frontend/components.json
+!webapp/translations/*.json
