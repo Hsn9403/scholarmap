@@ -30,6 +30,10 @@ def _sanitize_search_value(value: str) -> str:
     return re.sub(r"\s+", " ", cleaned).strip()
 
 
+class OpenAlexBudgetExceeded(APIError):
+    """OpenAlex refused the request because the daily credit budget is used up."""
+
+
 class OpenAlexClient:
     """
     Client for OpenAlex API.
@@ -39,6 +43,10 @@ class OpenAlexClient:
     """
 
     BASE_URL = "https://api.openalex.org"
+
+    # Passe à True dès qu'OpenAlex refuse faute de budget : le pipeline avale ses
+    # propres erreurs, la CLI s'en sert pour signaler une carte incomplète
+    budget_exhausted = False
 
     def __init__(self, email: Optional[str] = None, use_cache: bool = True):
         """
@@ -56,6 +64,11 @@ class OpenAlexClient:
             "User-Agent": f"Scholarmap/1.0 (mailto:{email})",
             "Accept": "application/json"
         })
+        # Sans clé, le budget gratuit quotidien est partagé par toute l'IP (0,10 $) ;
+        # une clé gratuite a le sien, dix fois plus grand
+        api_key = os.getenv("OPENALEX_API_KEY")
+        if api_key:
+            self.session.headers["Authorization"] = f"Bearer {api_key}"
 
         self.cache = SimpleCache(cache_dir=".cache/openalex") if use_cache else None
         self._last_request_time = 0
@@ -114,11 +127,20 @@ class OpenAlexClient:
             logger.warning(f"OpenAlex timeout (>10s): {endpoint}")
             raise APIError(f"OpenAlex is currently unavailable (timeout after 10s)") from e
         except requests.HTTPError as e:
-            if e.response.status_code == 429 and _attempt < self.MAX_RATE_LIMIT_RETRIES:
+            if e.response.status_code == 429:
                 try:
                     wait = float(e.response.headers.get("Retry-After", ""))
                 except ValueError:
                     wait = 0.0
+                # Budget du jour épuisé (Retry-After de plusieurs heures) : réessayer
+                # ne sert à rien, on le dit tout de suite
+                if wait > 60 or "budget" in (e.response.text or "").lower():
+                    OpenAlexClient.budget_exhausted = True
+                    raise OpenAlexBudgetExceeded(
+                        "OpenAlex daily budget exhausted"
+                        + ("" if os.getenv("OPENALEX_API_KEY") else " for this IP address (no API key)")
+                    ) from e
+            if e.response.status_code == 429 and _attempt < self.MAX_RATE_LIMIT_RETRIES:
                 # 1, 2, 4, 8 s par défaut ; Retry-After respecté jusqu'à 10 s
                 wait = min(wait, 10.0) if wait > 0 else float(2 ** _attempt)
                 logger.warning(f"OpenAlex rate limit hit, retrying in {wait:.0f}s...")

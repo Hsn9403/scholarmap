@@ -7,6 +7,7 @@ patent search, detail fetching, and data enrichment.
 """
 from __future__ import annotations
 
+import os
 import re
 import requests
 from typing import Any, Dict, List, Optional
@@ -581,9 +582,11 @@ class PatentsClient:
         """Fetch researcher specialty (top 3 topics) from OpenAlex by name."""
         try:
             import requests as _req
+            _key = os.getenv("OPENALEX_API_KEY")
             resp = _req.get(
                 "https://api.openalex.org/authors",
                 params={"search": inventor_name, "per-page": 1},
+                headers={"Authorization": f"Bearer {_key}"} if _key else None,
                 timeout=10,
             )
             results = resp.json().get("results", [])

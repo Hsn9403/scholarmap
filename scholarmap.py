@@ -167,6 +167,21 @@ class Step:
             print(f"  {'terminé' if exc_type is None else 'échec'} en {elapsed:.0f} s", flush=True)
 
 
+OPENALEX_BUDGET_HELP = (
+    "OpenAlex a épuisé son budget gratuit du jour"
+    + ("." if os.getenv("OPENALEX_API_KEY") else
+       " pour votre adresse IP (sans clé, il est partagé par tout votre réseau).")
+    + "\nCréez une clé gratuite en 30 secondes : https://openalex.org/settings/api"
+    + "\npuis ajoutez OPENALEX_API_KEY=votre_cle dans le fichier .env (voir README)."
+    + "\nSinon, le budget se recharge à minuit UTC."
+)
+
+
+def openalex_budget_exhausted() -> bool:
+    from src.pathfinding.openalex_client import OpenAlexClient
+    return OpenAlexClient.budget_exhausted
+
+
 def fail(message: str) -> None:
     print(_style(f"Erreur : {message}", "31"), file=sys.stderr)
     sys.exit(1)
@@ -243,6 +258,8 @@ def run_pipeline(researcher_name: str, openalex_id: str, quick: bool) -> Path:
             openalex_id=openalex_id,
         )
     if not data.get("scholar"):
+        if openalex_budget_exhausted():
+            fail(OPENALEX_BUDGET_HELP)
         fail(f"aucune publication trouvée pour « {researcher_name} » sur OpenAlex.")
 
     with Step("Déduplication et stockage"):
@@ -304,6 +321,9 @@ def main() -> None:
     print(bold("Scholarmap") + dim(" — cartographie du réseau d'un chercheur"))
     if not os.getenv("SERPAPI_KEY"):
         print(dim("SERPAPI_KEY absent : les brevets seront ignorés. Clé gratuite : voir README, section SerpAPI."))
+    if not os.getenv("OPENALEX_API_KEY"):
+        print(dim("OPENALEX_API_KEY absent : quota OpenAlex partagé par votre IP, 1 à 2 analyses par jour. "
+                  "Clé gratuite : voir README."))
     if not os.getenv("OPENAI_API_KEY"):
         print(dim("OPENAI_API_KEY absent : pas de reclassement IA des entités."))
     print()
@@ -319,7 +339,9 @@ def main() -> None:
     try:
         with Step(f"Recherche de « {name} » sur OpenAlex"):
             candidates, approximate = search_candidates(name)
-    except Exception as e:  # réseau, maintenance OpenAlex
+    except Exception as e:  # réseau, maintenance OpenAlex, budget épuisé
+        if openalex_budget_exhausted():
+            fail(OPENALEX_BUDGET_HELP)
         fail(f"OpenAlex est injoignable ({e}).")
     if not candidates:
         fail(f"aucun profil trouvé pour « {name} », même en orthographe approchée.\n"
@@ -342,6 +364,9 @@ def main() -> None:
         print("\nAnalyse interrompue.")
         sys.exit(130)
     target = export_graph(generated)
+    if openalex_budget_exhausted():
+        print(_style("Attention : le budget OpenAlex s'est épuisé pendant l'analyse, la carte est incomplète.", "33"))
+        print(dim(OPENALEX_BUDGET_HELP))
 
     print()
     print(bold(f"Carte prête en {(time.time() - started) / 60:.1f} min : ") + str(target.relative_to(Path.cwd()) if target.is_relative_to(Path.cwd()) else target))

@@ -25,7 +25,8 @@ Stars are how other researchers, investors and tech-transfer teams find it.
 
 ## Try it in your terminal
 
-Python 3.12 and three commands. No database to install, no account, no API key required:
+Python 3.12 and three commands. No database to install, no account, no API key required
+(a free OpenAlex key is strongly recommended past the first analysis, see below):
 
 ```bash
 git clone https://github.com/Hsn9403/scholarmap.git && cd scholarmap
@@ -63,14 +64,33 @@ path that links it to the researcher.
 | `-v` | show the pipeline logs |
 
 Without any key you get publications, co-authors, institutions, clinical trials and
-declared industry payments. Two optional keys add more:
+declared industry payments (Transparence Santé and CMS Open Payments, which only cover
+health professionals: a computer scientist will show none). Keys, all in a `.env` file at
+the root (`cp .env.example .env`):
 
-- `SERPAPI_KEY` adds **patents**, co-inventors and the companies that hold or cite them.
-  Free, see below.
-- `OPENAI_API_KEY` adds AI reclassification of companies and institutions (paid, optional).
+- `OPENALEX_API_KEY` (free, **recommended**) lifts the shared daily OpenAlex quota, see below.
+- `SERPAPI_KEY` (free plan) adds **patents**, co-inventors and the companies that hold or cite them.
+- `OPENAI_API_KEY` (paid, optional) adds AI reclassification of companies and institutions.
 
 Data is stored in a local SQLite file (`scholarmap.db`); set `DATABASE_URL` to use
 PostgreSQL instead.
+
+### Getting a free OpenAlex key
+
+[OpenAlex](https://openalex.org) is the main source: profiles, publications, co-authors,
+affiliations. Without a key, every request counts against a small daily budget **shared
+by everyone behind your IP address** ($0.10 a day, about 100 name searches). An analysis
+looks up each co-author by name, so a keyless office network runs out after one or two
+analyses, and Scholarmap then stops with an explicit message.
+
+A free key has its own budget, ten times larger ($1 a day, roughly 15 to 20 analyses):
+
+1. Create an account at [openalex.org](https://openalex.org).
+2. Copy your key from [openalex.org/settings/api](https://openalex.org/settings/api).
+3. Add it to `.env`: `OPENALEX_API_KEY=your_key`.
+
+The budget resets at midnight UTC. Responses are cached in `.cache/`, so re-running an
+analysis costs almost nothing.
 
 ### Getting a free SerpAPI key
 
