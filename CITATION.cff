@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Scholarmap: mapping a researcher's scientific and industrial network from public sources"
+type: software
+authors:
+  - family-names: Hassan
+    given-names: Julien
+repository-code: "https://github.com/Hsn9403/scholarmap"
+license: MIT
+version: "1.0.0"
+date-released: "2026-10-13"
+keywords:
+  - research network
+  - co-authorship network
+  - scientific due diligence
+  - KOL mapping
+  - OpenAlex
+  - patents
+  - clinical trials
+  - network visualization
+abstract: >-
+  Scholarmap builds an interactive, filterable map of a researcher's co-authors,
+  co-inventors, institutions and industry ties from public sources (OpenAlex,
+  Google Scholar, Google Patents, ClinicalTrials.gov, CMS Open Payments,
+  Transparence Santé), with cross-source author disambiguation.

@@ -1,6 +1,26 @@
 {
-  "name": "frontend",
+  "name": "scholarmap-frontend",
   "version": "0.1.0",
+  "description": "Frontend of Scholarmap: search a researcher and explore an interactive, filterable map of their co-authors, patents, clinical trials and industry ties.",
+  "keywords": [
+    "scholarmap",
+    "research-network",
+    "co-authorship",
+    "openalex",
+    "patents",
+    "clinical-trials",
+    "network-visualization",
+    "scientific-due-diligence",
+    "kol-mapping",
+    "nextjs"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hsn9403/scholarmap.git",
+    "directory": "frontend"
+  },
+  "homepage": "https://github.com/Hsn9403/scholarmap",
   "private": true,
   "scripts": {
     "dev": "next dev",

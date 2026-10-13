@@ -2,10 +2,31 @@
 
 **Map a researcher's scientific and industrial network from public sources.**
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Hsn9403/scholarmap?style=social)](https://github.com/Hsn9403/scholarmap/stargazers)
+![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)
+![Next.js 16](https://img.shields.io/badge/Next.js-16-black.svg)
+![Data: OpenAlex](https://img.shields.io/badge/data-OpenAlex-orange.svg)
+
 Type a name, pick the right profile among the candidates, wait for the pipeline, and get an
 interactive map of who the researcher works with: co-authors, co-inventors, institutions,
 and the companies that sponsor their trials, pay them, hold their patents or cite them.
 Every link in the map is backed by a document you can open.
+
+Scholarmap is an open-source tool for **scientific due diligence**, **KOL mapping** (key
+opinion leaders) and **research network analysis**. It joins OpenAlex, Google Scholar,
+Google Patents, ClinicalTrials.gov, CMS Open Payments and Transparence Santé into a single
+**co-authorship and industry-ties graph**.
+
+**If Scholarmap saves you time, please [star the repository](https://github.com/Hsn9403/scholarmap).**
+Stars are how other researchers, investors and tech-transfer teams find it.
+
+## Who it is for
+
+- **Investors and analysts** running scientific due diligence on a deeptech or healthtech founder
+- **Business development and medical affairs teams** mapping key opinion leaders in a therapeutic area
+- **Tech-transfer offices** looking for the companies already close to a lab
+- **Researchers** who want to see their own collaboration network and how industry connects to it
 
 ---
 
@@ -114,6 +135,22 @@ Docstring examples and test fixtures use invented names. If a name in here looks
 person, it is a fixture rather than a claim about anyone.
 
 ---
+
+## Contributing
+
+Issues and pull requests are welcome: new data sources, better disambiguation, other
+languages. Open an issue first for anything large so we can agree on the approach.
+
+## Support the project
+
+Scholarmap is free and open source. The simplest way to help is to
+**[give it a star on GitHub](https://github.com/Hsn9403/scholarmap)**, and to share it with
+someone who maps research networks by hand.
+
+## Citing
+
+If you use Scholarmap in academic work, use the **Cite this repository** button on GitHub
+(it reads [`CITATION.cff`](CITATION.cff)).
 
 ## Licence
 
