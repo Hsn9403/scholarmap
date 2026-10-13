@@ -35,8 +35,17 @@ try:
 except ImportError:
     pass
 
+# Valeurs d'exemple recopiées telles quelles depuis .env.example (anciennes versions) :
+# les traiter comme absentes. Mises à "" plutôt que supprimées, sinon les modules qui
+# relisent .env à l'import les remettraient.
+_PLACEHOLDER = re.compile(r"your_.*_here|change-me|username:password@|utilisateur:motdepasse@", re.I)
+for _key in ("OPENALEX_API_KEY", "SERPAPI_KEY", "OPENAI_API_KEY", "DATABASE_URL"):
+    if _PLACEHOLDER.search(os.environ.get(_key, "")):
+        os.environ[_key] = ""
+
 # Avant tout import de src.database, qui lit DATABASE_URL à l'import
-os.environ.setdefault("DATABASE_URL", f"sqlite:///{ROOT / 'scholarmap.db'}")
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = f"sqlite:///{ROOT / 'scholarmap.db'}"
 
 OUTPUT_DIR = ROOT / "output"
 
@@ -237,7 +246,14 @@ def choose_candidate(candidates: list[dict], auto: bool) -> dict:
 def init_database() -> None:
     from src.database.database import create_all_tables
 
-    create_all_tables()
+    try:
+        create_all_tables()
+    except Exception as e:
+        url = os.environ.get("DATABASE_URL", "")
+        fail("impossible d'ouvrir la base de données "
+             f"({url.split('@')[-1] if '@' in url else url}).\n"
+             "Pour le terminal, retirez DATABASE_URL de votre .env : un fichier SQLite local "
+             f"est utilisé par défaut.\nDétail : {str(e).splitlines()[0]}")
 
 
 def run_pipeline(researcher_name: str, openalex_id: str, quick: bool) -> Path:
