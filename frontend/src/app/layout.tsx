@@ -50,11 +50,13 @@ export const metadata: Metadata = {
     url: "/",
     locale: "fr_FR",
     alternateLocale: ["en_US"],
+    images: [{ url: "/og.png", width: 1280, height: 640, alt: "Scholarmap: carte du réseau d'un chercheur" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Scholarmap — cartographie du réseau d'un chercheur",
     description: DESCRIPTION,
+    images: ["/og.png"],
   },
 };
 

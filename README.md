@@ -13,6 +13,8 @@ interactive map of who the researcher works with: co-authors, co-inventors, inst
 and the companies that sponsor their trials, pay them, hold their patents or cite them.
 Every link in the map is backed by a document you can open.
 
+![Scholarmap network map: a researcher at the centre, linked to co-authors, institutions and companies, with filters by entity type](docs/screenshot.png)
+
 Scholarmap is an open-source tool for **scientific due diligence**, **KOL mapping** (key
 opinion leaders) and **research network analysis**. It joins OpenAlex, Google Scholar,
 Google Patents, ClinicalTrials.gov, CMS Open Payments and Transparence Santé into a single
