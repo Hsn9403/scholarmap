@@ -64,10 +64,13 @@ if _proxy_hops > 0:
 limiter = Limiter(
     get_remote_address,
     app=app,
-    storage_uri=os.getenv('REDIS_URL', 'memory://'),
+    storage_uri=os.getenv('REDIS_URL') or 'memory://',
+    # Fenêtre glissante : « 5 par jour » veut dire 5 sur les dernières 24 h,
+    # pas 5 avant minuit puis 5 de plus juste après
+    strategy='moving-window',
     default_limits=[],
 )
-ANALYSIS_RATE_LIMIT = os.getenv('ANALYSIS_RATE_LIMIT', '10 per hour')
+ANALYSIS_RATE_LIMIT = os.getenv('ANALYSIS_RATE_LIMIT', '5 per day')
 MAX_NAME_LENGTH = 200
 
 from services.error_tracking import capture_exception
@@ -431,7 +434,9 @@ def api_analyze_resolve():
 
 
 @app.route('/api/analyze/start', methods=['POST'])
-@limiter.limit(lambda: ANALYSIS_RATE_LIMIT)
+# Seule une analyse réellement lancée consomme un crédit : une requête invalide
+# ou une erreur serveur ne doit pas épuiser le quota du visiteur.
+@limiter.limit(lambda: ANALYSIS_RATE_LIMIT, deduct_when=lambda response: response.status_code == 200)
 def api_analyze_start():
     """
     Lance le pipeline pour un profil désambiguïsé.
@@ -1197,7 +1202,8 @@ def api_similar_researchers():
 
 @app.errorhandler(429)
 def too_many_requests(e):
-    return jsonify({'error': "Trop d'analyses lancées depuis cette adresse. Réessayez plus tard."}), 429
+    # `limit` est lu par le frontend pour afficher la limite atteinte
+    return jsonify({'error': 'rate_limited', 'limit': str(getattr(e, 'description', ''))}), 429
 
 
 @app.errorhandler(404)

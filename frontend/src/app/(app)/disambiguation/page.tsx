@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Search, Users, X } from "lucide-react";
+import { isAxiosError } from "axios";
 import { resolveAnalysis, resolveKey, startAnalysis } from "@/lib/analyze";
 import { OACandidateCard } from "@/components/shared/oa-candidate-card";
 import { useT } from "@/lib/i18n";
@@ -74,8 +75,12 @@ function DisambiguationContent() {
         openalexId: selected.openalex_id,
       });
       router.push(`/analyze/${task_id}`);
-    } catch {
-      setStartError(t("disambig_fetch_error"));
+    } catch (err) {
+      setStartError(
+        isAxiosError(err) && err.response?.status === 429
+          ? t("analysis_limit_reached")
+          : t("disambig_fetch_error"),
+      );
       setStarting(false);
     }
   }

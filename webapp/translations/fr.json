@@ -164,5 +164,6 @@
   "warning_link": "regénérer un nouveau rapport",
   "warning_text": "Le graphe de collaboration évolue quotidiennement. Pour obtenir une analyse à jour, il est préférable de",
   "warning_text2": "plutôt que de consulter un rapport existant.",
-  "warning_title": "Rapports potentiellement obsolètes"
+  "warning_title": "Rapports potentiellement obsolètes",
+  "analysis_limit_reached": "Vous avez atteint la limite de 5 analyses par 24 heures. Les rapports déjà générés restent consultables ; réessayez demain pour une nouvelle analyse."
 }

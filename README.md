@@ -81,7 +81,8 @@ flowchart LR
 
 There are no user accounts. Anyone who can reach the instance can run an analysis, so the
 protection of your API quotas is the per-IP rate limit on `/api/analyze/start`
-(`ANALYSIS_RATE_LIMIT`, 10 per hour by default) and on the other endpoints that call paid
+(`ANALYSIS_RATE_LIMIT`, 5 analyses per IP per day by default; only analyses that actually
+start are counted, and viewing an existing report is free) and on the other endpoints that call paid
 or rate-limited APIs.
 
 - **Expose only the frontend.** Flask must sit behind the Next.js proxy (and optionally

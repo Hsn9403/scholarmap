@@ -164,5 +164,6 @@
   "warning_link": "regenerate a new report",
   "warning_text": "The collaboration graph evolves daily. For an up-to-date analysis, it is preferable to",
   "warning_text2": "rather than consulting an existing one.",
-  "warning_title": "Potentially outdated reports"
+  "warning_title": "Potentially outdated reports",
+  "analysis_limit_reached": "You have reached the limit of 5 analyses per 24 hours. Existing reports remain available; try again tomorrow for a new analysis."
 }
