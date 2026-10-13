@@ -21,3 +21,4 @@ openai>=1.0.0
 posthog>=3.0.0
 flask-limiter==3.9.0
 flask-compress==1.18
+httpx==0.28.1

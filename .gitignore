@@ -99,3 +99,4 @@ cassettes/
 !frontend/tsconfig.json
 !frontend/components.json
 !webapp/translations/*.json
+scholarmap.db

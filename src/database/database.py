@@ -23,16 +23,24 @@ DATABASE_URL = os.getenv(
 # max_overflow=2 : 2 connexions temporaires en pic → 4 max total.
 # pool_recycle=3600 : recycle les connexions > 1h pour éviter les timeouts Clever Cloud.
 # pool_pre_ping=True : vérifie la connexion avant usage (évite les "connection closed" après idle).
-engine = create_engine(
-    DATABASE_URL,
-    echo=False,
-    poolclass=QueuePool,
-    pool_size=2,
-    max_overflow=2,
-    pool_timeout=30,
-    pool_recycle=3600,
-    pool_pre_ping=True,
-)
+if DATABASE_URL.startswith("sqlite"):
+    # Mode local (CLI) : un fichier, partagé entre les threads du pipeline
+    engine = create_engine(
+        DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False, "timeout": 30},
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        echo=False,
+        poolclass=QueuePool,
+        pool_size=2,
+        max_overflow=2,
+        pool_timeout=30,
+        pool_recycle=3600,
+        pool_pre_ping=True,
+    )
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -57,3 +65,19 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+
+
+def create_all_tables() -> None:
+    """
+    Create every table the pipeline uses.
+
+    Some tables are declared outside models.py (scientist_corporate, *_enriched),
+    so their modules must be imported before create_all or they are silently skipped.
+    """
+    import src.database.models  # noqa: F401
+    import src.database.add_coauthor_industry_connections  # noqa: F401  scientist_corporate
+    import src.database.migrate_add_enriched_nodes  # noqa: F401  persons/publications_enriched
+    import src.database.migrate_add_patent_enriched  # noqa: F401  patents_enriched
+
+    Base.metadata.create_all(bind=engine)
+

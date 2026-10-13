@@ -23,6 +23,54 @@ Google Patents, ClinicalTrials.gov, CMS Open Payments and Transparence Santé in
 **If Scholarmap saves you time, please [star the repository](https://github.com/Hsn9403/scholarmap).**
 Stars are how other researchers, investors and tech-transfer teams find it.
 
+## Try it in your terminal
+
+Python 3.12 and three commands. No database to install, no account, no API key required:
+
+```bash
+git clone https://github.com/Hsn9403/scholarmap.git && cd scholarmap
+python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+python scholarmap.py "Yann LeCun"
+```
+
+```
+> Recherche de « Yann LeCun » sur OpenAlex
+
+  1. Yann LeCun
+     Dartmouth College · NEC (Japan)
+     581 publications · 262442 citations
+  2. Yann LeCun
+     Machine Science · New York University
+     3 publications · 0 citations
+
+Quel profil analyser ? [1-2, q pour quitter] 1
+
+> Collecte : publications, co-auteurs, brevets, essais cliniques, paiements déclarés
+> Déduplication et stockage
+> Construction de la carte du réseau
+
+Carte prête : output/yann_lecun_network.html
+```
+
+The map opens in your browser. Use the filters at the top, and click a company to see the
+path that links it to the researcher.
+
+| Option | Effect |
+|---|---|
+| `--quick` | lighter analysis (fewer publications and co-authors, no enrichment), a few seconds |
+| `-y` | take the first profile without asking |
+| `--no-open` | do not open the browser |
+| `-v` | show the pipeline logs |
+
+Optional keys, in a `.env` file at the root (see `.env.example`):
+
+- `SERPAPI_KEY` adds patents and Google Scholar metrics ([serpapi.com](https://serpapi.com), free tier available)
+- `OPENAI_API_KEY` adds AI reclassification of companies and institutions
+
+Without them you still get publications, co-authors, institutions, clinical trials and
+declared industry payments. Data is cached in a local SQLite file (`scholarmap.db`); set
+`DATABASE_URL` to use PostgreSQL instead.
+
 ## Who it is for
 
 - **Investors and analysts** running scientific due diligence on a deeptech or healthtech founder
@@ -101,9 +149,11 @@ public issue.
 
 ---
 
-## Running it
+## Running the web app
 
-Requirements: Python 3.12, Node 20+, pnpm, PostgreSQL, a SerpAPI key.
+The terminal version above is enough to try Scholarmap. To host the web interface
+(search page, loading screen, report with the embedded map), you need Python 3.12,
+Node 20+, pnpm, PostgreSQL and a SerpAPI key.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate

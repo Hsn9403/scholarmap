@@ -42,7 +42,8 @@ def init_database(drop_existing: bool = False) -> None:
             logger.info("All tables dropped successfully")
 
         logger.info("Creating database tables...")
-        Base.metadata.create_all(bind=engine)
+        from src.database.database import create_all_tables
+        create_all_tables()
         logger.info("Database tables created successfully")
 
         # Print created tables
