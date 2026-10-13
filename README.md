@@ -25,12 +25,29 @@ Stars are how other researchers, investors and tech-transfer teams find it.
 
 ## Try it in your terminal
 
-Python 3.12 and three commands. No database to install, no account, no API key required
-(a free OpenAlex key is strongly recommended past the first analysis, see below):
+You need Python 3.12 or later. No database to install.
+
+**1. Install**
 
 ```bash
 git clone https://github.com/Hsn9403/scholarmap.git && cd scholarmap
 python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+```
+
+**2. Add your free OpenAlex key** (30 seconds, do not skip it)
+
+Without a key, OpenAlex shares one small daily quota between everyone on your network, and
+it runs out after one or two analyses. Create an account at [openalex.org](https://openalex.org),
+copy your key from [openalex.org/settings/api](https://openalex.org/settings/api), then:
+
+```bash
+cp .env.example .env
+# open .env and fill in:  OPENALEX_API_KEY=your_key
+```
+
+**3. Run**
+
+```bash
 python scholarmap.py "Yann LeCun"
 ```
 
