@@ -1198,6 +1198,7 @@ def render_graph_html(
                 tooltip_html += f'<div class="tt-body">{"".join(rows)}</div>'
             if cta:
                 tooltip_html += cta
+                tooltip_html += '<div class="tt-hint">Cliquez pour ouvrir l\'article</div>'
 
         elif ntype == "patent":
             pub_date = attrs.get("publication_date", "")
@@ -1228,6 +1229,7 @@ def render_graph_html(
                 tooltip_html += f'<div class="tt-body">{"".join(rows)}</div>'
             if cta:
                 tooltip_html += cta
+                tooltip_html += '<div class="tt-hint">Cliquez pour ouvrir le brevet</div>'
 
         elif ntype == "corporate":
             connections = attrs.get("connections", [])
@@ -1269,7 +1271,8 @@ def render_graph_html(
             tooltip_html = f'<div class="tt-header"><span class="tt-name">{_esc(str(label))}</span>{_badge(badge_label, "institution")}</div>'
             tooltip_html += '<div class="tt-body"><div class="tt-muted" style="font-size:11px;color:#6B7280;margin-bottom:2px;">Source\u00a0: OpenAlex</div></div>'
             if openalex_url:
-                tooltip_html += _cta("openalex_url", openalex_url)
+                tooltip_html += _cta("Voir sur OpenAlex", openalex_url)
+                tooltip_html += '<div class="tt-hint">Cliquez pour ouvrir la fiche</div>'
 
         else:
             badge_label = ntype.capitalize()
@@ -1281,6 +1284,13 @@ def render_graph_html(
         # Store URLs in node data for click event
         scholar_profile_url = links.get("scholar_profile", "") or links.get("scholar_url", "")
         patents_url = links.get("patents_url", "")
+        # Page publique ouverte au clic quand le graphe est affiché seul (CLI)
+        open_url = {
+            "person": scholar_profile_url,
+            "publication": links.get("scholar_url", ""),
+            "patent": patents_url,
+            "institution": links.get("openalex_url", "") or links.get("scholar_profile", ""),
+        }.get(ntype, "")
 
         G.add_node(
             nid,
@@ -1289,7 +1299,8 @@ def render_graph_html(
             color=color,
             node_type=ntype,
             scholar_url=scholar_profile_url,
-            patents_url=patents_url
+            patents_url=patents_url,
+            open_url=open_url,
         )
 
     # Add edges
@@ -2750,9 +2761,16 @@ def render_graph_html(
         document.getElementById('visible-edges-count').textContent = visibleEdges;
     }}
 
-    // Helper : délègue l'ouverture au parent via postMessage (compatible Safari)
+    // Dans l'appli web le graphe est une iframe sandboxée : la page parente ouvre
+    // les liens (compatible Safari). Ouvert seul (CLI), on les ouvre nous-mêmes.
+    const EMBEDDED = window.parent !== window;
     function openUrl(url) {{
-        window.parent.postMessage({{ type: 'openUrl', url: url }}, '*');
+        if (!/^https?:\\/\\//i.test(String(url || ''))) return;
+        if (EMBEDDED) {{
+            window.parent.postMessage({{ type: 'openUrl', url: url }}, '*');
+        }} else {{
+            window.open(url, '_blank', 'noopener');
+        }}
     }}
 
     // ── Custom tooltip ──
@@ -2821,14 +2839,15 @@ def render_graph_html(
                         checkbox.checked = newState;
                     }}
                     handleCorporateFilter(nodeId, newState);
-                }} else if (nodeData.node_type === 'patent' && nodeData.patents_url) {{
-                    openUrl(nodeData.patents_url);
-                }} else if (nodeData.node_type === 'person') {{
-                    // Navigate to coauthor fiche in new tab
+                }} else if (nodeData.node_type === 'person' && EMBEDDED) {{
+                    // Appli web : fiche co-auteur dans un nouvel onglet
                     const coauthorName = nodeData.label || nodeId;
                     const url = '/coauthor/' + encodeURIComponent(coauthorName) +
                                 '?seed=' + encodeURIComponent(seedLabel);
                     window.open(url, '_blank');
+                }} else if (nodeData.open_url) {{
+                    // Profil OpenAlex, article, brevet ou institution
+                    openUrl(nodeData.open_url);
                 }}
             }}
         }}
