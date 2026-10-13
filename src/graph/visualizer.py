@@ -1246,6 +1246,7 @@ def render_graph_html(
                         "co_author": "Co-auteur",
                         "clinical_trial": "Essai clinique",
                         "transparence_sante": "Transparence Santé",
+                        "employment": "Affiliation",
                     }
                     aff_type = _aff_labels.get(aff_type_raw, aff_type_raw)
                     if scientist_name:
@@ -2188,7 +2189,13 @@ def render_graph_html(
                  + (natures ? '<span style="' + aStyle + 'color:#64748B;">' + natures + '</span>' : '');
 
         }} else if (type === 'employment') {{
-            return 'Affili\u00e9(e) \u00e0 ce corporate';
+            const e = ev[0] || {{}};
+            if (e.source !== 'openalex') return 'Affili\u00e9(e) \u00e0 ce corporate';
+            const when = e.is_current ? 'affiliation actuelle' : 'affiliation pass\u00e9e';
+            const u = safeHref(e.url);
+            return 'Affili\u00e9(e) \u00e0 ce corporate (' + when + ')'
+                 + (u ? '<a href="' + u + '" target="_blank" style="' + aStyle + '">Source\u00a0: OpenAlex \u2197</a>'
+                      : '<span style="' + aStyle + 'color:#64748B;">Source\u00a0: OpenAlex</span>');
         }}
         return escHtml(type.replace(/_/g, ' '));
     }}

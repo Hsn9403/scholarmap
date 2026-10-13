@@ -69,6 +69,7 @@ def enrich_institutions_from_openalex(graph: Dict[str, Any]) -> Dict[str, Any]:
 
     new_nodes: Dict[str, Dict] = {}  # inst_id -> node dict (dedup)
     new_edges: list = []
+    nodes_by_id: Dict[str, Dict] = {n["id"]: n for n in graph["nodes"]}
 
     for node in graph["nodes"]:
         if node.get("type") != "person":
@@ -109,6 +110,23 @@ def enrich_institutions_from_openalex(graph: Dict[str, Any]) -> Dict[str, Any]:
                         "label": name,
                         "attributes": {"source": "openalex", "country": ""},
                     }
+                # Le « pourquoi » du lien, lu par le panneau CONNEXION : sans lui, la
+                # carte ne montre qu'un chemin brut (personne → entreprise)
+                corp_node = new_nodes.get(corp_id) or nodes_by_id.get(corp_id)
+                if corp_node is not None:
+                    connections = corp_node.setdefault("attributes", {}).setdefault("connections", [])
+                    if not any(c.get("scientist_name") == node["label"] and c.get("affiliation_type") == "employment"
+                               for c in connections):
+                        connections.append({
+                            "scientist_name": node["label"],
+                            "affiliation_type": "employment",
+                            "notes": "OpenAlex affiliation",
+                            "evidence": [{
+                                "source": "openalex",
+                                "is_current": bool(inst.get("is_current", False)),
+                                "url": inst.get("openalex_url", ""),
+                            }],
+                        })
                 edge_id = f"e:{person_id}__affiliated_with__{corp_id}"
                 if edge_id not in existing_edge_ids:
                     new_edges.append({
