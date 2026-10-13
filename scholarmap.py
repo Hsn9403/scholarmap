@@ -210,7 +210,7 @@ def main() -> None:
 
     print(bold("Scholarmap") + dim(" — cartographie du réseau d'un chercheur"))
     if not os.getenv("SERPAPI_KEY"):
-        print(dim("SERPAPI_KEY absent : les brevets et les profils Google Scholar seront ignorés."))
+        print(dim("SERPAPI_KEY absent : les brevets seront ignorés. Clé gratuite : voir README, section SerpAPI."))
     if not os.getenv("OPENAI_API_KEY"):
         print(dim("OPENAI_API_KEY absent : pas de reclassement IA des entités."))
     print()
@@ -251,6 +251,10 @@ def main() -> None:
     print()
     print(bold(f"Carte prête en {(time.time() - started) / 60:.1f} min : ") + str(target.relative_to(Path.cwd()) if target.is_relative_to(Path.cwd()) else target))
     print(dim("Filtres en haut de la carte ; cliquez sur une entreprise pour voir le chemin qui la relie au chercheur."))
+    if os.getenv("SERPAPI_KEY"):
+        from src.api.serpapi_client import SerpAPIClient
+        print(dim(f"{SerpAPIClient.real_calls} requête(s) SerpAPI consommée(s) "
+                  "(les réponses sont gardées en cache : relancer la même analyse ne coûte rien)."))
     if not args.no_open:
         webbrowser.open(target.as_uri())
 

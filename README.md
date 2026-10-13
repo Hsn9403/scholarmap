@@ -62,14 +62,46 @@ path that links it to the researcher.
 | `--no-open` | do not open the browser |
 | `-v` | show the pipeline logs |
 
-Optional keys, in a `.env` file at the root (see `.env.example`):
+Without any key you get publications, co-authors, institutions, clinical trials and
+declared industry payments. Two optional keys add more:
 
-- `SERPAPI_KEY` adds patents and Google Scholar metrics ([serpapi.com](https://serpapi.com), free tier available)
-- `OPENAI_API_KEY` adds AI reclassification of companies and institutions
+- `SERPAPI_KEY` adds **patents**, co-inventors and the companies that hold or cite them.
+  Free, see below.
+- `OPENAI_API_KEY` adds AI reclassification of companies and institutions (paid, optional).
 
-Without them you still get publications, co-authors, institutions, clinical trials and
-declared industry payments. Data is cached in a local SQLite file (`scholarmap.db`); set
-`DATABASE_URL` to use PostgreSQL instead.
+Data is stored in a local SQLite file (`scholarmap.db`); set `DATABASE_URL` to use
+PostgreSQL instead.
+
+### Getting a free SerpAPI key
+
+[SerpAPI](https://serpapi.com) is the service Scholarmap uses to query Google Patents. Its
+free plan is enough to try the tool:
+
+1. Create an account at [serpapi.com/users/sign_up](https://serpapi.com/users/sign_up) and
+   confirm your email.
+2. Copy your **Private API Key** from the dashboard:
+   [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key).
+3. Put it in a `.env` file at the root of the project:
+
+   ```bash
+   cp .env.example .env
+   # then edit .env:  SERPAPI_KEY=your_private_key
+   ```
+
+   or, for the current terminal session only: `export SERPAPI_KEY=your_private_key`.
+4. Run `python scholarmap.py "Name"` again: patents now appear in the map, and the last line
+   tells you how many SerpAPI searches the analysis used.
+
+**What the free plan covers.** 250 searches per month and 50 per hour, with only successful
+searches counted ([pricing](https://serpapi.com/pricing), checked October 2026). In our
+measurements a full analysis uses about **11 to 20 searches** (one patent search for the
+researcher, one for each of their ten most-published co-authors, a few name variants), so
+roughly **12 to 20 analyses a month**. With `--quick`, co-author patents are skipped and an
+analysis uses **1 or 2 searches**.
+
+Responses are cached locally (`src/api/cassettes/`): running the same analysis again costs
+nothing. Your key stays on your machine; it is never sent anywhere except to SerpAPI, and
+`.env` is git-ignored so it cannot be committed by mistake.
 
 ## Who it is for
 

@@ -49,6 +49,9 @@ class SerpAPIClient:
         >>> results = client.search({"engine": "google_scholar", "q": "ML"})
     """
 
+    # Requêtes réellement envoyées (hors cache) : c'est ce que décompte le quota SerpAPI
+    real_calls = 0
+
     # Environment variable names to check for API key (in order of priority)
     _ENV_KEYS = ("SERPAPI_KEY", "SERPAPI_API_KEY", "SERPAPI")
 
@@ -163,6 +166,7 @@ class SerpAPIClient:
             search = GoogleSearch(params_with_key)
             search.timeout = 20  # override lib default (60000s = no timeout)
             result = search.get_dict()
+            SerpAPIClient.real_calls += 1
 
             if result.get("error"):
                 raise APIError(f"SerpAPI error: {result['error']}")
@@ -224,6 +228,7 @@ class SerpAPIClient:
             log_api_call(engine, {"q": params.get("q", "")})
             search = GoogleSearch(params_with_key)
             html = search.get_html()
+            SerpAPIClient.real_calls += 1
 
             # Save to cache (wrap in dict for consistency)
             self.cassette.save(params_for_cache, {"html": html})
