@@ -297,17 +297,15 @@ def _search_openalex_candidates(researcher_name: str):
         Tuple of (candidates, error). error is 'maintenance' when the OpenAlex API
         is unavailable, None otherwise.
     """
+    from src.pathfinding.author_search import search_author_candidates
     from src.pathfinding.openalex_client import OpenAlexClient
     from src.exceptions import APIError
 
     candidates = []
     try:
-        oa_client = OpenAlexClient()
-        raw = oa_client._make_request('/authors', {
-            'filter': f'display_name.search:{researcher_name}',
-            'per-page': 5,
-        })
-        for author in raw.get('results', []):
+        # Tolérant : « Yann Le Cun », « Yan Lecun » retrouvent « Yann LeCun »
+        authors, _approximate = search_author_candidates(researcher_name, OpenAlexClient())
+        for author in authors:
             all_affils = [
                 a.get('institution', {}).get('display_name', '')
                 for a in author.get('affiliations', [])

@@ -174,16 +174,14 @@ def fail(message: str) -> None:
 
 # ── Étapes ────────────────────────────────────────────────────────────────────
 
-def search_candidates(name: str) -> list[dict]:
-    """Up to 5 OpenAlex author profiles matching the name."""
+def search_candidates(name: str) -> tuple[list[dict], bool]:
+    """Up to 5 OpenAlex author profiles for the name, and whether they are approximate."""
+    from src.pathfinding.author_search import search_author_candidates
     from src.pathfinding.openalex_client import OpenAlexClient
 
-    raw = OpenAlexClient()._make_request("/authors", {
-        "filter": f"display_name.search:{name}",
-        "per-page": 5,
-    })
+    authors, approximate = search_author_candidates(name, OpenAlexClient())
     candidates = []
-    for author in raw.get("results", []):
+    for author in authors:
         affiliations = [
             a.get("institution", {}).get("display_name", "")
             for a in author.get("affiliations", [])
@@ -196,7 +194,7 @@ def search_candidates(name: str) -> list[dict]:
             "cited_by_count": author.get("cited_by_count", 0),
             "affiliations": affiliations[:2],
         })
-    return candidates
+    return candidates, approximate
 
 
 def choose_candidate(candidates: list[dict], auto: bool) -> dict:
@@ -320,11 +318,14 @@ def main() -> None:
 
     try:
         with Step(f"Recherche de « {name} » sur OpenAlex"):
-            candidates = search_candidates(name)
+            candidates, approximate = search_candidates(name)
     except Exception as e:  # réseau, maintenance OpenAlex
         fail(f"OpenAlex est injoignable ({e}).")
     if not candidates:
-        fail(f"aucun profil trouvé pour « {name} ». Vérifiez l'orthographe.")
+        fail(f"aucun profil trouvé pour « {name} », même en orthographe approchée.\n"
+             "Essayez le nom de famille seul, ou le nom tel qu'il apparaît dans ses publications.")
+    if approximate:
+        print(f"Pas de profil exact pour « {name} » : voici les plus proches.")
 
     try:
         chosen = choose_candidate(candidates, args.yes)
