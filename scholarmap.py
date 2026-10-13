@@ -16,6 +16,9 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
+import shutil
+import threading
 import sys
 import time
 import webbrowser
@@ -36,6 +39,10 @@ except ImportError:
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{ROOT / 'scholarmap.db'}")
 
 OUTPUT_DIR = ROOT / "output"
+
+from src import progress  # noqa: E402  (après le chargement de l'environnement)
+
+_ANSI = re.compile(r"\033\[[0-9;]*m")
 
 
 # ── Affichage ─────────────────────────────────────────────────────────────────
@@ -60,13 +67,104 @@ def blue(text: str) -> str:
     return _style(text, "34")
 
 
-def step(message: str) -> float:
-    print(f"{blue('>')} {message}", flush=True)
-    return time.time()
+def green(text: str) -> str:
+    return _style(text, "32")
 
 
-def done(started: float) -> None:
-    print(dim(f"  terminé en {time.time() - started:.0f} s"), flush=True)
+# Libellés des étapes signalées par le pipeline (src/progress.py)
+STAGE_LABELS = {
+    "graph_base": "assemblage du graphe",
+    "persons_db": "fusion des homonymes",
+    "patents_db": "brevets connus",
+    "coauthors_openalex": "profils des co-auteurs (OpenAlex)",
+    "institutions": "institutions",
+    "coauthor_patents": "brevets des co-auteurs",
+    "industry": "liens avec l'industrie",
+    "render": "génération de la carte",
+}
+SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+
+class Step:
+    """
+    One phase of the analysis, shown as a single live line in a terminal:
+    spinner, current sub-step, a bar when the sub-step is countable, elapsed time.
+
+    The line is redrawn by a background thread so it keeps moving during long
+    network calls. Outside a terminal (pipe, CI) it falls back to plain lines.
+    """
+
+    def __init__(self, title: str):
+        self.title = title
+        self.stage: str | None = None
+        self.done: int | None = None
+        self.total: int | None = None
+        self.live = sys.stdout.isatty()
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+
+    def __enter__(self) -> "Step":
+        self.started = time.time()
+        if self.live:
+            self._thread = threading.Thread(target=self._animate, daemon=True)
+            self._thread.start()
+        else:
+            print(f"> {self.title}", flush=True)
+        progress.set_listener(self.update)
+        return self
+
+    def update(self, stage: str, done: int | None = None, total: int | None = None) -> None:
+        with self._lock:
+            if stage != self.stage:
+                # Un thread d'une étape précédente peut encore signaler : on l'ignore
+                if done is not None and self.stage is not None and stage in STAGE_LABELS \
+                        and list(STAGE_LABELS).index(stage) < list(STAGE_LABELS).index(self.stage):
+                    return
+                self.stage, self.done, self.total = stage, done, total
+                if not self.live and stage in STAGE_LABELS:
+                    print(f"  - {STAGE_LABELS[stage]}", flush=True)
+            elif done is not None:
+                self.done, self.total = done, total
+
+    def _line(self, frame: int) -> str:
+        elapsed = f"{time.time() - self.started:.0f} s"
+        parts = [blue(SPINNER[frame % len(SPINNER)]), self.title]
+        with self._lock:
+            stage, done_, total = self.stage, self.done, self.total
+        if stage in STAGE_LABELS:
+            parts.append(dim("·") + " " + STAGE_LABELS[stage])
+        if total:
+            width = 20
+            filled = round(width * min(done_ or 0, total) / total)
+            parts.append("[" + blue("█" * filled) + dim("░" * (width - filled)) + f"] {done_}/{total}")
+        parts.append(dim(elapsed))
+        return " ".join(parts)
+
+    def _animate(self) -> None:
+        frame = 0
+        while not self._stop.wait(0.1):
+            columns = shutil.get_terminal_size((100, 20)).columns
+            line = self._line(frame)
+            # Ne jamais dépasser la largeur, sinon \r ne ramène plus en début de ligne
+            visible = len(_ANSI.sub("", line))
+            if visible > columns - 1:
+                line = _ANSI.sub("", line)[: columns - 2] + "…"
+            sys.stdout.write("\r\033[K" + line)
+            sys.stdout.flush()
+            frame += 1
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        progress.set_listener(None)
+        elapsed = time.time() - self.started
+        if self.live:
+            self._stop.set()
+            self._thread.join()
+            sys.stdout.write("\r\033[K")
+        mark = green("✓") if exc_type is None else _style("✗", "31")
+        if self.live:
+            print(f"{mark} {self.title} {dim(f'{elapsed:.0f} s')}", flush=True)
+        else:
+            print(f"  {'terminé' if exc_type is None else 'échec'} en {elapsed:.0f} s", flush=True)
 
 
 def fail(message: str) -> None:
@@ -135,34 +233,31 @@ def run_pipeline(researcher_name: str, openalex_id: str, quick: bool) -> Path:
     from scripts.modules.phase3_graph_generation import generate_complete_graph
     from src.helpers import slug
 
-    t = step("Collecte : publications, co-auteurs, brevets, essais cliniques, paiements déclarés")
-    data = collect_all_data(
-        researcher_name=researcher_name,
-        max_publications=50 if quick else 100,
-        max_patents=5 if quick else 10,
-        max_coauthors_ct=10 if quick else 30,
-        max_coauthors_ts=15 if quick else 50,
-        min_amount_ts=0.0,
-        use_db_only=False,
-        openalex_id=openalex_id,
-    )
+    with Step("Collecte : publications, co-auteurs, brevets, essais cliniques, paiements déclarés"):
+        data = collect_all_data(
+            researcher_name=researcher_name,
+            max_publications=50 if quick else 100,
+            max_patents=5 if quick else 10,
+            max_coauthors_ct=10 if quick else 30,
+            max_coauthors_ts=15 if quick else 50,
+            min_amount_ts=0.0,
+            use_db_only=False,
+            openalex_id=openalex_id,
+        )
     if not data.get("scholar"):
         fail(f"aucune publication trouvée pour « {researcher_name} » sur OpenAlex.")
-    done(t)
 
-    t = step("Déduplication et stockage")
-    store_all_to_database(researcher_name=researcher_name, data=data)
-    done(t)
+    with Step("Déduplication et stockage"):
+        store_all_to_database(researcher_name=researcher_name, data=data)
 
-    t = step("Construction de la carte du réseau")
-    generate_complete_graph(
-        researcher_name=researcher_name,
-        scholar_data=data["scholar"],
-        patents_data=data.get("patents"),
-        enrich_persons=not quick,
-        discover_coauthor_patents_api=not quick and bool(os.getenv("SERPAPI_KEY")),
-    )
-    done(t)
+    with Step("Construction de la carte du réseau"):
+        generate_complete_graph(
+            researcher_name=researcher_name,
+            scholar_data=data["scholar"],
+            patents_data=data.get("patents"),
+            enrich_persons=not quick,
+            discover_coauthor_patents_api=not quick and bool(os.getenv("SERPAPI_KEY")),
+        )
 
     generated = ROOT / f"{slug(researcher_name).replace('-', '_')}_network.html"
     if not generated.exists():
@@ -223,14 +318,13 @@ def main() -> None:
             print()
             sys.exit(0)
 
-    t = step(f"Recherche de « {name} » sur OpenAlex")
     try:
-        candidates = search_candidates(name)
+        with Step(f"Recherche de « {name} » sur OpenAlex"):
+            candidates = search_candidates(name)
     except Exception as e:  # réseau, maintenance OpenAlex
         fail(f"OpenAlex est injoignable ({e}).")
     if not candidates:
         fail(f"aucun profil trouvé pour « {name} ». Vérifiez l'orthographe.")
-    done(t)
 
     try:
         chosen = choose_candidate(candidates, args.yes)

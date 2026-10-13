@@ -5,6 +5,7 @@ API Docs: https://docs.openalex.org/
 Rate limit: 100,000 requests/day (polite pool), 10 requests/second with email in User-Agent
 """
 import re
+import os
 import time
 from typing import List, Dict, Any, Optional
 import requests
@@ -39,7 +40,7 @@ class OpenAlexClient:
 
     BASE_URL = "https://api.openalex.org"
 
-    def __init__(self, email: str = "research@sci-diligence.com", use_cache: bool = True):
+    def __init__(self, email: Optional[str] = None, use_cache: bool = True):
         """
         Initialize OpenAlex client.
 
@@ -47,6 +48,8 @@ class OpenAlexClient:
             email: Email for polite pool (faster rate limits).
             use_cache: Whether to use caching.
         """
+        # OpenAlex sert plus vite les requêtes signées d'un e-mail joignable (« polite pool »)
+        email = email or os.getenv("OPENALEX_EMAIL") or "scholarmap@users.noreply.github.com"
         self.email = email
         self.session = requests.Session()
         self.session.headers.update({
@@ -67,7 +70,12 @@ class OpenAlexClient:
             time.sleep(self._min_interval - elapsed)
         self._last_request_time = time.time()
 
-    def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    # Relances sur 429 : courtes et bornées. Une attente fixe de 60 s dépassait le
+    # délai que le pipeline accorde à l'enrichissement des co-auteurs (45 s).
+    MAX_RATE_LIMIT_RETRIES = 4
+
+    def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None,
+                      _attempt: int = 0) -> Dict[str, Any]:
         """
         Make API request with rate limiting and caching.
 
@@ -106,10 +114,16 @@ class OpenAlexClient:
             logger.warning(f"OpenAlex timeout (>10s): {endpoint}")
             raise APIError(f"OpenAlex is currently unavailable (timeout after 10s)") from e
         except requests.HTTPError as e:
-            if e.response.status_code == 429:
-                logger.warning("OpenAlex rate limit hit, waiting 60s...")
-                time.sleep(60)
-                return self._make_request(endpoint, params)  # Retry
+            if e.response.status_code == 429 and _attempt < self.MAX_RATE_LIMIT_RETRIES:
+                try:
+                    wait = float(e.response.headers.get("Retry-After", ""))
+                except ValueError:
+                    wait = 0.0
+                # 1, 2, 4, 8 s par défaut ; Retry-After respecté jusqu'à 10 s
+                wait = min(wait, 10.0) if wait > 0 else float(2 ** _attempt)
+                logger.warning(f"OpenAlex rate limit hit, retrying in {wait:.0f}s...")
+                time.sleep(wait)
+                return self._make_request(endpoint, params, _attempt + 1)
             raise APIError(f"OpenAlex API error: {e}") from e
         except requests.RequestException as e:
             raise APIError(f"OpenAlex request failed: {e}") from e

@@ -34,7 +34,7 @@ python scholarmap.py "Yann LeCun"
 ```
 
 ```
-> Recherche de « Yann LeCun » sur OpenAlex
+✓ Recherche de « Yann LeCun » sur OpenAlex 1 s
 
   1. Yann LeCun
      Dartmouth College · NEC (Japan)
@@ -45,11 +45,11 @@ python scholarmap.py "Yann LeCun"
 
 Quel profil analyser ? [1-2, q pour quitter] 1
 
-> Collecte : publications, co-auteurs, brevets, essais cliniques, paiements déclarés
-> Déduplication et stockage
-> Construction de la carte du réseau
+✓ Collecte : publications, co-auteurs, brevets, essais cliniques, paiements déclarés 9 s
+✓ Déduplication et stockage 1 s
+⠏ Construction de la carte du réseau · profils des co-auteurs (OpenAlex) [██████████████░░░░░░] 35/51 4 s
 
-Carte prête : output/yann_lecun_network.html
+Carte prête en 0.3 min : output/yann_lecun_network.html
 ```
 
 The map opens in your browser. Use the filters at the top, and click a company to see the

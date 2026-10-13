@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any
 
 from src.logger import logger
+from src.progress import report
 
 
 def _store_openalex_institutions(attrs: dict, author: dict) -> None:
@@ -145,6 +146,8 @@ def enrich_persons_from_openalex(
             return False
 
     enriched = 0
+    done = 0
+    report("coauthors_openalex", 0, len(person_nodes))
     # 5 workers max pour limiter la consommation mémoire sur Clever Cloud XS (256MB).
     # Chaque worker crée sa propre session HTTP — au-delà de 5, le risque OOM augmente.
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -152,6 +155,8 @@ def enrich_persons_from_openalex(
         for future in as_completed(futures):
             if future.result():
                 enriched += 1
+            done += 1
+            report("coauthors_openalex", done, len(person_nodes))
 
     logger.info(
         f"✅ [OpenAlex] Person enrichment: {enriched}/{len(person_nodes)} nodes enriched"

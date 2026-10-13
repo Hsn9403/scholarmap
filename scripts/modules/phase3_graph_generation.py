@@ -10,6 +10,7 @@ Generates the interactive HTML graph with all data:
 from typing import Optional, Any
 from pathlib import Path
 from src.logger import logger
+from src.progress import report
 from src.helpers import slug
 
 
@@ -53,6 +54,7 @@ def generate_complete_graph(
         cur, peak = _tm.get_traced_memory()
         logger.info(f"[RAM/P3] {label} — current: {cur/1024/1024:.1f} MB | peak: {peak/1024/1024:.1f} MB")
 
+    report("graph_base")
     logger.info("\n1️⃣  Building base graph...")
     _t = _time.time()
 
@@ -89,6 +91,7 @@ def generate_complete_graph(
     _p3_snap("après build_graph_data")
 
     # Enrich person names from database (replace abbreviated names with full names)
+    report("persons_db")
     logger.info("\n1.5️⃣  Enriching person names from database...")
 
     from src.database.database import SessionLocal
@@ -131,6 +134,7 @@ def generate_complete_graph(
 
         # Enrich with patents from database (before OpenAlex enrichment so that
         # co-inventor person nodes are created first and then enriched with OpenAlex)
+        report("patents_db")
         logger.info("\n1.6️⃣  Enriching with patents from database...")
         _t = _time.time()
         graph_data = enrich_patents_from_db(
@@ -161,6 +165,7 @@ def generate_complete_graph(
                     raise APIError("OpenAlex API is currently in maintenance. Please try again in a few minutes.") from e
                 raise
 
+            report("coauthors_openalex")
             logger.info("\n1.55️⃣  Enriching person nodes with OpenAlex data...")
             _t = _time.time()
             import threading as _threading
@@ -181,6 +186,7 @@ def generate_complete_graph(
             _p3_snap("après enrich_persons_from_openalex")
 
             # Créer les nœuds institution violets depuis les affiliations OpenAlex
+            report("institutions")
             logger.info("\n1.56️⃣  Ajout des nœuds institution depuis OpenAlex...")
             _t = _time.time()
             from src.graph.enrich_institutions_from_openalex import enrich_institutions_from_openalex
@@ -190,6 +196,7 @@ def generate_complete_graph(
             _gc.collect()
 
         # Phase A: cross-reference co-author patents already in DB against known corporates
+        report("coauthor_patents")
         logger.info("\n1.7️⃣  Checking co-author patents in DB against known corporates...")
         _t = _time.time()
         enrich_coauthor_patents_from_db(graph=graph_data, db=db)
@@ -216,6 +223,7 @@ def generate_complete_graph(
             _p3_snap("après discover_coauthor_patents (B)")
 
         # Enrich with industry connections from database
+        report("industry")
         logger.info("\n2️⃣  Enriching with industry connections from database...")
         _t = _time.time()
         enriched_graph = enrich_graph_with_industry_connections(
@@ -253,6 +261,7 @@ def generate_complete_graph(
         logger.warning(f"LLM reclassification skipped: {_e}")
 
     # Generate HTML visualization
+    report("render")
     logger.info("\n3️⃣  Generating visualization...")
 
     output_filename = f"{slug(researcher_name).replace('-', '_')}_network.html"
