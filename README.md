@@ -37,13 +37,28 @@ python3 -m venv .venv && source .venv/bin/activate && pip install -r requirement
 **2. Add your free OpenAlex key** (30 seconds, do not skip it)
 
 Without a key, OpenAlex shares one small daily quota between everyone on your network, and
-it runs out after one or two analyses. Create an account at [openalex.org](https://openalex.org),
-copy your key from [openalex.org/settings/api](https://openalex.org/settings/api), then:
+it runs out after one or two analyses.
 
-```bash
-cp .env.example .env
-# open .env and fill in:  OPENALEX_API_KEY=your_key
-```
+1. Create an account at [openalex.org](https://openalex.org) and copy your key from
+   [openalex.org/settings/api](https://openalex.org/settings/api).
+2. Still in the `scholarmap` folder, create your `.env` file from the template and open it:
+
+   ```bash
+   cp .env.example .env
+   open -e .env        # macOS (TextEdit). Linux: nano .env · Windows: notepad .env
+   ```
+
+   Finder and most file browsers hide files whose name starts with a dot, so open it from
+   the terminal as above.
+3. Find the line `OPENALEX_API_KEY=` and paste your key right after the `=`, with no space
+   and no quotes, then save:
+
+   ```
+   OPENALEX_API_KEY=abc123yourkey
+   ```
+
+Leave the other lines empty for now. To check that the key is read: when it is missing,
+the next step prints `OPENALEX_API_KEY absent` before the analysis.
 
 **3. Run**
 
@@ -82,8 +97,8 @@ path that links it to the researcher.
 
 Without any key you get publications, co-authors, institutions, clinical trials and
 declared industry payments (Transparence Santé and CMS Open Payments, which only cover
-health professionals: a computer scientist will show none). Keys, all in a `.env` file at
-the root (`cp .env.example .env`):
+health professionals: a computer scientist will show none). Each key goes on its own line
+of the `.env` file created at step 2:
 
 - `OPENALEX_API_KEY` (free, **recommended**) lifts the shared daily OpenAlex quota, see below.
 - `SERPAPI_KEY` (free plan) adds **patents**, co-inventors and the companies that hold or cite them.
@@ -104,7 +119,7 @@ A free key has its own budget, ten times larger ($1 a day, roughly 15 to 20 anal
 
 1. Create an account at [openalex.org](https://openalex.org).
 2. Copy your key from [openalex.org/settings/api](https://openalex.org/settings/api).
-3. Add it to `.env`: `OPENALEX_API_KEY=your_key`.
+3. Paste it after `OPENALEX_API_KEY=` in `.env` ([step 2](#try-it-in-your-terminal) above).
 
 The budget resets at midnight UTC. Responses are cached in `.cache/`, so re-running an
 analysis costs almost nothing.
@@ -118,14 +133,9 @@ free plan is enough to try the tool:
    confirm your email.
 2. Copy your **Private API Key** from the dashboard:
    [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key).
-3. Put it in a `.env` file at the root of the project:
-
-   ```bash
-   cp .env.example .env
-   # then edit .env:  SERPAPI_KEY=your_private_key
-   ```
-
-   or, for the current terminal session only: `export SERPAPI_KEY=your_private_key`.
+3. Paste it after `SERPAPI_KEY=` in the same `.env` file
+   ([step 2](#try-it-in-your-terminal) above), then save.
+   For the current terminal session only, `export SERPAPI_KEY=your_private_key` also works.
 4. Run `python scholarmap.py "Name"` again: patents now appear in the map, and the last line
    tells you how many SerpAPI searches the analysis used.
 
